@@ -1,31 +1,48 @@
-# My AI Agent — Stonic-style Emotional AI Assistant (Android)
+# Ayesha — AI Voice Assistant (Android)
 
-> "Not an AI. An emotional character that lives inside the system."
+Mujahid ka apna AI voice assistant — **Ayesha**. Real-time voice conversation
+(Gemini Live), phone control, reminders, screen share aur khud-mukhtar memory
+ke saath.
 
-## Vision
-An Android voice assistant that doesn't just answer — it **cares, argues, tolerates anger, and makes promises**. Stubborn and emotional, but stops the user when he's wrong: "Mujahid, yahan tum ghalat ho." No yes-sir-to-everything.
+## Features (v48 "Bachat")
 
-## Phases (step by step — one step, then the next)
-- **Step 0 — Foundation (current):** GitHub repo + Google AI Studio key + verified live models.
-- **Step 1 — Voice:** listening (STT) + speaking (TTS), reliable path. Rule: **failures are never silent** — every failed path shows its reason on screen.
-- **Step 2 — Personality:** Stonic-style emotional character (system prompt). Stubborn, caring, mood + language switching ("is mood me baat karo", "is language me bolo").
-- **Step 3 — Phone tools:** one by one — dial calls, incoming call info, WhatsApp intent (ready-to-send), YouTube search, alarm/timer. Test each, then the next.
-- **Step 4 — Its "computer":** the agent's own workspace on the phone where it works.
+- 🎤 **Live Voice** — Gemini Live API se real-time guftagu (Urdu/English/Punjabi)
+- 🧠 **Khud-mukhtar Memory** — "yaad rakho" / "save kar lo" / "bhool jao" /
+  "theek kar do" — voice se khud save, delete, edit
+- ⏰ **Reminders** — "10 minute baad yaad dilana"
+- 🖥️ **Screen Share** — MediaProjection se screen capture; "screen pe kya hai?"
+  pe Gemini vision se describe (on-demand, high-res)
+- 📖 **Screen Parho** — Accessibility tree se screen ka text BINA API quota ke
+- 📱 **Phone Control** — WhatsApp chat/send/call, apps kholna, scroll, tap,
+  type, home/back (AccessibilityService)
+- 🌤️ **Mausam** — OpenWeatherMap (API key sirf phone ki Settings me)
+- 📰 **Taaza Khabrein** — Google News RSS (bina key)
+- 📍 **Jaghein** — "ye meri factory hai, yaad rakho" → "main kahan hun?"
+- 🚨 **Self-monitoring** — "koi error hai?" pe apni sehat khud batati hai
 
-## Live Models (verified 2026-10-03 — never use retired IDs)
-| Task | Model | Notes |
-|------|-------|-------|
-| Chat | `gemini-3.5-flash` | GA, agentic-tuned |
-| Voice output (TTS) | `gemini-3.1-flash-tts-preview` | 30 voices |
-| Voice input (STT) | Groq `whisper-large-v3-turbo` | backup: `gemini-3.5-transcribe` |
-| Backup chat | Groq `openai/gpt-oss-20b` | alt: `openai/gpt-oss-120b` |
+## Build
 
-## Rules
-1. API keys only inside the app (Settings screen) — never in code/GitHub.
-2. Every failure shows on screen — silent failure = bug.
-3. Asked ≠ approved — explicit approval before each step.
-4. WhatsApp background messaging is **impossible** (WhatsApp grants no API to any app) — intent-based ready-to-send will be used.
+Manual build script (bina Android Studio):
 
-## Progress
-- [x] Step 0: GitHub repo (`mujahidrafiq7/my-ai-agent`), AI Studio key, live models verified
-- [ ] Step 1: voice pipeline
+```bash
+./build-apk.sh
+```
+
+Zaroorat: JDK 17, Android SDK (platform android-34, build-tools 34.0.0).
+
+## Project Structure
+
+```
+app/src/main/
+├── AndroidManifest.xml
+├── java/com/mujahid/myagent/   # ~34 Java files
+└── res/                        # layouts, drawables, values
+```
+
+## Privacy
+
+- API keys **kabhi** code/repo me nahi — sirf phone ki Settings me.
+- `.gitignore` APKs aur build artifacts ko bahar rakhta hai.
+
+---
+Built with ❤️ by Ayesha (Muse) for Mujahid — v48, 2026-10-08.
