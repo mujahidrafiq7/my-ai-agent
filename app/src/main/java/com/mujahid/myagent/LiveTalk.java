@@ -86,11 +86,15 @@ public class LiveTalk {
     private volatile LiveWs ws;
     private volatile boolean sessionBroken = false;
     private Thread micThread;
+    /** v50: mic waqai khula ya nahi — andaza khatam. */
+    private volatile boolean micOk = false;
     private AudioRecord recorder;
     private AudioTrack track;
     private Listener listener;
     private Context ctx;
     private int reconnectTries = 0;
+    /** v50: aakhri tootne ki wajah — screen pe dikhegi, andaza khatam. */
+    private volatile String lastDropWhy = "";
 
     private final Object lock = new Object();
     private boolean setupDone = false;
@@ -144,10 +148,13 @@ public class LiveTalk {
             if (cleanEnd) break;
             reconnectTries++;
             if (reconnectTries > 5) {
-                error("Live connection bar bar toot rahi hai.");
+                // v50: aakhri wajah samet — taake pata chale kyun tooti
+                error("Live connection bar bar toot rahi hai."
+                        + (lastDropWhy.isEmpty() ? "" : " Aakhri wajah: " + lastDropWhy));
                 return;
             }
-            status("Dobara jor raha hun (" + reconnectTries + ")...");
+            status("Dobara jor raha hun (" + reconnectTries + ")..."
+                    + (lastDropWhy.isEmpty() ? "" : " [pichli wajah: " + lastDropWhy + "]"));
             sleepQuiet(3000);
         }
     }
@@ -186,6 +193,19 @@ public class LiveTalk {
         everConnected = true;
         startPlayback();
         startMic();
+        // v50: 1.5s me mic na khula to wajah SAAMNE — khamoshi ka raaz khatam
+        new Thread(() -> {
+            try { Thread.sleep(1500); } catch (InterruptedException ignored) { }
+            if (running && !sessionBroken && !micOk) {
+                String m = "Mic nahi khul saka — wo tumhari awaz nahi sun sakti.";
+                Diag.error("mic", m);
+                status("live: " + m);
+                try {
+                    sayText("Boss, mera mic nahi khul saka — tumhari awaz mujh tak "
+                            + "nahi pahunch rahi. Ek baar guftagu band karke dobara shuru karo.");
+                } catch (Exception ignored) { }
+            }
+        }).start();
         synchronized (lock) {
             while (running && !sessionBroken) {
                 try { lock.wait(1000); }
@@ -227,11 +247,16 @@ public class LiveTalk {
         return new LiveWs.Listener() {
             @Override public void onText(String json) { handleServer(json); }
             @Override public void onClose(int code, String reason) {
+                // v50: wajah SAAMNE — chhupao mat
+                String why = "closed " + code
+                        + (reason != null && !reason.isEmpty() ? " (" + reason + ")" : "");
                 synchronized (lock) {
                     sessionBroken = true;
-                    if (failReason == null) failReason = "closed " + code;
+                    if (failReason == null) failReason = why;
                     lock.notifyAll();
                 }
+                lastDropWhy = why;
+                Diag.event("live drop: " + why);
             }
             @Override public void onError(String why) {
                 synchronized (lock) {
@@ -239,6 +264,9 @@ public class LiveTalk {
                     if (failReason == null) failReason = why;
                     lock.notifyAll();
                 }
+                lastDropWhy = why;
+                Diag.event("live drop: " + why); // v50
+                Diag.error("live", why);
             }
         };
     }
@@ -312,7 +340,22 @@ public class LiveTalk {
                 return;
             }
             if (o.has("goAway")) {
-                Diag.event("live goAway — jald reconnect hoga");
+                // v50: ye NORMAL end hai (server ka waqt poora) — Diag me nishan rahe
+                Diag.event("live goAway — server ka waqt poora (normal end), reconnect ayega");
+            }
+            // v50: anjaan server message — server ka error yahin chhupta hai
+            // (goAway upar handle ho chuka — usay dobara mat gino)
+            if (!o.has("goAway")) {
+                StringBuilder uk = new StringBuilder();
+                java.util.Iterator<String> kit = o.keys();
+                while (kit.hasNext()) {
+                    if (uk.length() > 0) uk.append(',');
+                    uk.append(kit.next());
+                }
+                if (uk.length() > 0) {
+                    Diag.event("live unhandled: " + uk + " :: "
+                            + json.substring(0, Math.min(220, json.length())));
+                }
             }
         } catch (Exception ignored) { }
     }
@@ -349,6 +392,7 @@ public class LiveTalk {
 
     private void startMic() {
         stopMic();
+        micOk = false; // v50
         micThread = new Thread(() -> {
             AudioRecord rec = null;
             try {
@@ -362,7 +406,19 @@ public class LiveTalk {
                         AudioFormat.ENCODING_PCM_16BIT,
                         Math.max(minBuf, 6400));
                 recorder = rec;
+                // v50: mic waqai khula? — chup chap marne mat do
+                if (rec.getState() != AudioRecord.STATE_INITIALIZED) {
+                    Diag.error("mic", "AudioRecord initialized nahi hua (state="
+                            + rec.getState() + ") — mic DEAD");
+                    return;
+                }
                 rec.startRecording();
+                if (rec.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
+                    Diag.error("mic", "startRecording fail (recState="
+                            + rec.getRecordingState() + ") — mic DEAD");
+                    return;
+                }
+                micOk = true;
                 byte[] buf = new byte[1600]; // 50ms
                 while (running) {
                     int n = rec.read(buf, 0, buf.length);
@@ -381,7 +437,11 @@ public class LiveTalk {
                         break;
                     }
                 }
-            } catch (Exception ignored) { }
+            } catch (Exception e) {
+                // v50: mic thread ki maut ab chhup ke nahi hogi
+                Diag.error("mic", "mic thread: " + e.getClass().getSimpleName()
+                        + (e.getMessage() != null ? " " + e.getMessage() : ""));
+            }
             finally {
                 try {
                     if (rec != null) {
@@ -397,6 +457,7 @@ public class LiveTalk {
     }
 
     private void stopMic() {
+        micOk = false; // v50
         try {
             AudioRecord rec = recorder;
             recorder = null;
