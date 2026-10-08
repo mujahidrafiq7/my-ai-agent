@@ -274,18 +274,16 @@ public class PhoneTools {
         return i;
     }
 
+    // v49: SINGLE launch path — seedha startActivity background me BLOCK hota hai
+    // (Android 10+), is liye sirf ForegroundOpen (full-screen intent wala rasta).
     private static void fire(Context ctx, Intent i) {
         // YouTube app prefer karo
         if (i.getData() != null && i.getData().toString().contains("youtube.com")) {
             Intent yt = new Intent(i);
             yt.setPackage("com.google.android.youtube");
-            try {
-                ctx.startActivity(yt);
-                return;
-            } catch (Exception ignored) { }
+            ForegroundOpen.open(ctx, yt, "YouTube");
+            return;
         }
-        new Handler(Looper.getMainLooper()).post(() -> {
-            try { ctx.startActivity(i); } catch (Exception ignored) { }
-        });
+        ForegroundOpen.open(ctx, i, "Ayesha");
     }
 }

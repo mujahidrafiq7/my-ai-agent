@@ -298,18 +298,25 @@ public class VoiceService extends Service {
         });
     }
 
-    /** v43: screen ka ek frame pakdo → Gemini vision se describe. Bg thread pe. */
+    /** v43: screen ka ek frame pakdo → Gemini vision se describe. Bg thread pe.
+     *  v49 refresh: har stage ka pata — agli baar foran maloom hoga kahan toota. */
     private String describeScreen() {
         try {
             android.graphics.Bitmap bmp = ScreenShare.capture();
-            if (bmp == null)
-                return "Boss, screen ki tasveer nahi le saki — ek baar phir try karo.";
+            if (bmp == null) {
+                Diag.event("screen: capture NULL — projection toot gaya?");
+                return "Boss, screen share ka connection toot gaya lagta hai — "
+                        + "ek baar screen share OFF karke phir ON karo, phir pucho.";
+            }
             String seen = ChatClient.describeImage(bmp, Keys.geminiKeys(this),
                     smartVisionPrompt());
-            if (seen == null || seen.trim().isEmpty())
-                return "Boss, screen dekhi lekin samajh nahi aaya.";
+            if (seen == null || seen.trim().isEmpty()) {
+                Diag.event("screen: vision API ne khaali jawab diya");
+                return "Boss, screen dekhi lekin samajh nahi aaya — ek baar phir try karo.";
+            }
             return seen.trim();
         } catch (Exception e) {
+            Diag.event("screen: exception " + e.getClass().getSimpleName());
             return "Boss, screen dekhne me masla aaya.";
         }
     }
@@ -466,12 +473,20 @@ public class VoiceService extends Service {
         // Phone commands — phone khud karta hai (model ne pehle hi jawab de diya)
         WhatsAppAction.Result wa = WhatsAppAction.tryHandle(
                 VoiceService.this, PhoneTools.norm(said));
-        if (wa.handled) return;
+        if (wa.handled) {
+            // v49: handler ka SACH uski awaz me — khud se mat gharo
+            if (liveTalk != null && wa.reply != null && !wa.reply.isEmpty())
+                liveTalk.sayText(wa.reply);
+            return;
+        }
 
         PhoneTools.Result cmd = PhoneTools.tryHandle(VoiceService.this, said);
         if (cmd.handled) {
+            // v49: handler ka SACH uski awaz me — "khol diya" sirf jab sach me khula
+            if (liveTalk != null && cmd.reply != null && !cmd.reply.isEmpty())
+                liveTalk.sayText(cmd.reply);
             if (cmd.intent != null) {
-                ForegroundOpen.open(VoiceService.this, cmd.intent, cmd.reply);
+                // v49: launch tryHandle→fire() me ho chuka (single path) — yahan sirf manual backup button
                 updateNotification("↗ " + cmd.reply, cmd.intent, "Kholo");
             }
             return;
@@ -479,7 +494,12 @@ public class VoiceService extends Service {
 
         UiControl.Result u = UiControl.tryHandle(
                 VoiceService.this, PhoneTools.norm(said));
-        if (u.handled) return;
+        if (u.handled) {
+            // v49: scroll/tap ka asal natija uski awaz me — inkar khatam
+            if (liveTalk != null && u.reply != null && !u.reply.isEmpty())
+                liveTalk.sayText(u.reply);
+            return;
+        }
         // Baaki guftagu Live ne sambhal li — kuch nahi karna.
     }
 
@@ -719,8 +739,7 @@ public class VoiceService extends Service {
                 if (cmd.handled) {
                     history.add(new ChatClient.Message("model", cmd.reply));
                     if (cmd.intent != null) {
-                        // SAAMNE kholo — background se bhi (full-screen intent)
-                        ForegroundOpen.open(VoiceService.this, cmd.intent, cmd.reply);
+                        // v49: launch tryHandle→fire() me ho chuka (single path) — yahan sirf manual backup button
                         updateNotification("↗ " + cmd.reply, cmd.intent, "Kholo");
                     }
                     speakAndContinue(cmd.reply, geminiKeys);

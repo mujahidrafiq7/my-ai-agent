@@ -38,8 +38,6 @@ public class ProjectionService extends Service {
     // v44: VirtualDisplay har capture pe NAYA banta hai (purani frame ka masla khatam)
     private static volatile int vw = 0, vh = 0, densityDpi = 320;
     // v47: live streaming ke liye persistent pipeline (1 fps)
-    private static volatile ImageReader streamReader;
-    private static volatile VirtualDisplay streamVd;
 
     public static boolean isRunning() {
         return running && projection != null;
@@ -200,52 +198,6 @@ public class ProjectionService extends Service {
         }
     }
 
-    // ============ v47: LIVE STREAM PIPELINE (1 fps, 640px) ============
-
-    /** Stream shuru karo — chhota persistent VirtualDisplay. */
-    public static synchronized boolean openStream() {
-        if (streamReader != null) return true;
-        if (projection == null || !running || vw <= 0 || vh <= 0) return false;
-        try {
-            float s = Math.min(1f, 640f / Math.max(vw, vh));
-            int sw = Math.max(1, (int) (vw * s));
-            int sh = Math.max(1, (int) (vh * s));
-            streamReader = ImageReader.newInstance(sw, sh,
-                    PixelFormat.RGBA_8888, 3);
-            streamVd = projection.createVirtualDisplay("ayesha-stream",
-                    sw, sh, densityDpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                    streamReader.getSurface(), null, null);
-            return true;
-        } catch (Exception e) {
-            closeStream();
-            return false;
-        }
-    }
-
-    /** Taaza frame lo (null = abhi koi nahi). Caller recycle kare. */
-    public static Bitmap pollFrame() {
-        ImageReader r = streamReader;
-        if (r == null) return null;
-        Image img = null;
-        try { img = r.acquireLatestImage(); }
-        catch (Exception ignored) { }
-        if (img == null) return null;
-        Bitmap bmp = imageToBitmap(img);
-        try { img.close(); } catch (Exception ignored) { }
-        return bmp;
-    }
-
-    /** Stream band karo. */
-    public static synchronized void closeStream() {
-        try { if (streamVd != null) streamVd.release(); }
-        catch (Exception ignored) { }
-        try { if (streamReader != null) streamReader.close(); }
-        catch (Exception ignored) { }
-        streamVd = null;
-        streamReader = null;
-    }
-
     private static Bitmap imageToBitmap(Image img) {
         try {
             Image.Plane[] planes = img.getPlanes();
@@ -269,7 +221,6 @@ public class ProjectionService extends Service {
     @Override
     public void onDestroy() {
         running = false;
-        closeStream(); // v47
         try { if (projection != null) projection.stop(); }
         catch (Exception ignored) { }
         projection = null;

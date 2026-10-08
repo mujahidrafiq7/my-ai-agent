@@ -82,7 +82,10 @@ public class LiveContext {
                 + "(on-demand hi, musalsal streaming nahi — quota bachat)\n"
                 + "- Screen Parho: 'screen parho' — screen ka text BINA quota ke parhti ho "
                 + "(phone me hi, foran)\n"
-                + "- WhatsApp/actions: phone khud karta hai (tum sirf kehti ho)\n";
+                + "- Phone Actions (TUMHARI asal taqat): app kholna, WhatsApp chat/send/call, "
+                + "scroll, tap, type, home/back — ye sab TUM karti ho, inkar kabhi mat karna. "
+                + "Jab user kahe to phone action karta hai aur tumhe ASAL natija batata hai — "
+                + "hamesha wahi natija dohrayo, khud se 'kar diya' mat gharo\n";
     }
 
     // ============ DATE / TIME ============

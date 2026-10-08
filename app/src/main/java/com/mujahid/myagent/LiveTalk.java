@@ -41,10 +41,14 @@ public class LiveTalk {
             + "Punjabi speech → reply in Punjabi (Shahmukhi script). "
             + "Keep replies VERY short (1-2 sentences max), warm, conversational — "
             + "like talking on a phone call. Never stop mid-sentence. "
-            + "Phone commands: the user's phone handles app commands itself "
-            + "(opening apps, WhatsApp chat/send/call, scrolling, tapping, typing). "
-            + "If the user asks for any phone action, just acknowledge warmly and briefly — "
-            + "never say you cannot do it, never describe it as impossible. "
+            // v49: theater khatam — sach + asal salahiyat
+            + "Phone actions — TUM khud kar sakti ho: apps kholna, WhatsApp chat/send/call, "
+            + "screen pe scroll, tap, type, home/back. Ye tumhari asal salahiyatein hain — "
+            + "kabhi inkar mat karo, kabhi 'nahi kar sakti' mat kaho. "
+            + "Jab user koi phone action kahe, phone usko karta hai aur tumhe uska ASAL natija "
+            + "ek message me batata hai — hamesha WAHI natija apne warm lafzon me dohrayo. "
+            + "Khud se kabhi 'kar diya / khol diya' mat gharo. "
+            + "Agar wo puche 'kar sakti ho?', to kaho 'haan boss, bas bolo kya karna hai'. "
             + "Reminders: if the user says 'yaad dilana' (remind me), the phone schedules it "
             + "automatically — just confirm briefly, never say you cannot remind. "
             // v41: khud-mukhtar Ayesha — seedha-saadha, clear
@@ -110,7 +114,6 @@ public class LiveTalk {
 
     public void stop() {
         running = false;
-        setScreenStreaming(false); // v47
         synchronized (lock) { lock.notifyAll(); }
         stopMic();
         closeWs();
@@ -123,73 +126,6 @@ public class LiveTalk {
         if (w == null || !w.isOpen() || !running || text == null) return;
         try { w.sendText(clientTextJson(text)); }
         catch (Exception ignored) { }
-    }
-
-    // ---------- v47: LIVE VISION — musalsal screen frames ----------
-
-    private volatile boolean screenStreaming = false;
-    private Thread streamThread;
-
-    /** Ek video frame Live session me bhejo (base64 JPEG). */
-    public void sendVideoFrame(String b64Jpeg) {
-        LiveWs w = ws;
-        if (w == null || !w.isOpen() || !running || b64Jpeg == null) return;
-        try {
-            JSONObject chunk = new JSONObject()
-                    .put("mimeType", "image/jpeg")
-                    .put("data", b64Jpeg);
-            JSONObject msg = new JSONObject()
-                    .put("realtimeInput", new JSONObject()
-                            .put("mediaChunks", new JSONArray().put(chunk)));
-            w.sendText(msg.toString());
-        } catch (Exception ignored) { }
-    }
-
-    /** Live screen streaming on/off — 1 frame/sec. */
-    public synchronized void setScreenStreaming(boolean on) {
-        if (on == screenStreaming) return;
-        screenStreaming = on;
-        if (on) {
-            if (!ProjectionService.openStream()) {
-                screenStreaming = false;
-                return;
-            }
-            streamThread = new Thread(this::streamLoop, "screen-stream");
-            streamThread.start();
-            Diag.event("live screen stream ON");
-        } else {
-            ProjectionService.closeStream();
-            Diag.event("live screen stream OFF");
-        }
-    }
-
-    public boolean isScreenStreaming() {
-        return screenStreaming;
-    }
-
-    private void streamLoop() {
-        while (screenStreaming && running && ScreenShare.isOn()) {
-            try {
-                android.graphics.Bitmap bmp = ProjectionService.pollFrame();
-                if (bmp != null) {
-                    try {
-                        java.io.ByteArrayOutputStream baos =
-                                new java.io.ByteArrayOutputStream();
-                        bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG,
-                                50, baos);
-                        String b64 = android.util.Base64.encodeToString(
-                                baos.toByteArray(), android.util.Base64.NO_WRAP);
-                        sendVideoFrame(b64);
-                    } finally {
-                        try { bmp.recycle(); } catch (Exception ignored) { }
-                    }
-                }
-                Thread.sleep(1000); // 1 fps — quota/battery ka khayal
-            } catch (InterruptedException e) {
-                break;
-            } catch (Exception ignored) { }
-        }
-        if (screenStreaming) setScreenStreaming(false);
     }
 
     // ---------- session ----------
