@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#060A12">
+
+    <!-- Text chat — voice se ALAG section. Sirf likhna-parhna, koi awaz nahi. -->
+    <TextView
+        android:id="@+id/chatStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="💬 Text chat — type and read only."
+        android:textSize="14sp"
+        android:textColor="#E8EEF4"
+        android:padding="10dp"
+        android:background="#141B28" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:id="@+id/chatLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="15sp"
+            android:textColor="#E8EEF4"
+            android:padding="8dp" />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <EditText
+            android:id="@+id/inputText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Type here..."
+            android:textColor="#E8EEF4"
+            android:textColorHint="#788C9B"
+            android:background="#141B28"
+            android:padding="10dp"
+            android:inputType="text" />
+
+        <Button
+            android:id="@+id/sendBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Send"
+            android:textColor="#E8EEF4"
+            android:background="#1E2A3A" />
+    </LinearLayout>
+
+</LinearLayout>

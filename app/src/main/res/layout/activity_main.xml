@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stonic-style main screen: dark, AYESHA header, pills + reactor, cards, nav -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#060A12">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Header: AYESHA + AI Assistant, sparks orbit the letters -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="118dp">
+
+        <com.mujahid.myagent.SparkOrbitView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AYESHA"
+                android:textSize="34sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.2"
+                android:textColor="#F0F5FA"
+                android:shadowColor="#00E5FF"
+                android:shadowRadius="14"
+                android:shadowDx="0"
+                android:shadowDy="0" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="AI Assistant"
+                android:textSize="13sp"
+                android:textColor="#788C9B" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Middle stage: pills (left) + reactor (right) + beams -->
+    <RelativeLayout
+        android:id="@+id/middleZone"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.mujahid.myagent.BeamsView
+            android:id="@+id/beamsView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <LinearLayout
+            android:id="@+id/pillsCol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="14dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/pillMemory"
+                android:layout_width="152dp"
+                android:layout_height="52dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/pill_bg"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="horizontal">
+                <View
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:background="@drawable/dot_circle"
+                    android:backgroundTint="#3C8CFF" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="MEMORY"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/pillChat"
+                android:layout_width="152dp"
+                android:layout_height="52dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/pill_bg"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="horizontal">
+                <View
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:background="@drawable/dot_circle"
+                    android:backgroundTint="#FF9632" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="CHAT"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/pillSoul"
+                android:layout_width="152dp"
+                android:layout_height="52dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/pill_bg"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="horizontal">
+                <View
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:background="@drawable/dot_circle"
+                    android:backgroundTint="#AAB4BE" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="SOUL"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/pillSettings"
+                android:layout_width="152dp"
+                android:layout_height="52dp"
+                android:background="@drawable/pill_bg"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="horizontal">
+                <View
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:background="@drawable/dot_circle"
+                    android:backgroundTint="#50DC82" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="SETTINGS"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <com.mujahid.myagent.ReactorView
+            android:id="@+id/reactorView"
+            android:layout_width="205dp"
+            android:layout_height="205dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="18dp" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/reactorView"
+            android:layout_alignStart="@id/reactorView"
+            android:layout_alignEnd="@id/reactorView"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="ready"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#00E5FF" />
+
+        <Button
+            android:id="@+id/screenShareBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/statusText"
+            android:layout_alignStart="@id/statusText"
+            android:layout_alignEnd="@id/statusText"
+            android:layout_marginTop="8dp"
+            android:text="🖥 Screen Share: OFF"
+            android:textSize="12sp"
+            android:textColor="#2E9BFF"
+            android:background="#141B28" />
+    </RelativeLayout>
+
+    <!-- Lower cards -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_margin="12dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="INTELLIGENCE BRIEF"
+                android:textSize="11sp"
+                android:textColor="#788C9B" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Your day, summarized"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Weather &amp; reminders"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="+ MORE"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#00E5FF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="SYSTEM"
+                    android:textSize="11sp"
+                    android:textColor="#788C9B" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Running"
+                    android:textSize="11sp"
+                    android:textColor="#00FF9D" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/sysVoiceState"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="● Voice ready"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="● Memory active"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#23374B" />
+
+    <!-- Bottom nav -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="10dp"
+        android:paddingBottom="14dp">
+
+        <LinearLayout
+            android:id="@+id/navHome"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <View
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/nav_dot_active" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Home"
+                android:textSize="11sp"
+                android:textColor="#00E5FF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/navChat"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <View
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/nav_dot" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Chat"
+                android:textSize="11sp"
+                android:textColor="#788C9B" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/navVoice"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <View
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/nav_dot_active" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Voice"
+                android:textSize="11sp"
+                android:textColor="#00E5FF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/navMemory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <View
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/nav_dot" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Memory"
+                android:textSize="11sp"
+                android:textColor="#788C9B" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/navSettings"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true">
+            <View
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/nav_dot" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Settings"
+                android:textSize="11sp"
+                android:textColor="#788C9B" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
+
+<!-- MYRA-video jaisa rainbow neon border (sab se upar, touch rokta nahi) -->
+<com.mujahid.myagent.NeonBorderView
+    android:id="@+id/neonBorder"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="false" />
+</FrameLayout>
