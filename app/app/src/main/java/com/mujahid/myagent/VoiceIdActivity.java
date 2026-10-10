@@ -18,9 +18,27 @@ public class VoiceIdActivity extends Activity {
 
     private TextView statusText;
     private TextView enrollState;
+    private TextView meterText; // v58: live mic meter
     private Button enrollBtn;
     private Button testBtn;
     private boolean busy = false;
+
+    private final android.os.Handler meterHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable meterTick = new Runnable() {
+        @Override public void run() {
+            if (!busy) { meterText.setText(""); return; }
+            meterText.setText(bars(VoicePrint.micLevel));
+            meterHandler.postDelayed(this, 120);
+        }
+    };
+
+    private String bars(int lvl) {
+        int full = Math.max(0, Math.min(10, lvl / 10));
+        StringBuilder sb = new StringBuilder("Mic ");
+        for (int i = 0; i < 10; i++) sb.append(i < full ? "█" : "░");
+        return sb.append(" ").append(lvl).append("%").toString();
+    }
 
     @Override
     protected void onCreate(Bundle b) {
@@ -54,9 +72,15 @@ public class VoiceIdActivity extends Activity {
 
         enrollState = new TextView(this);
         enrollState.setTextSize(15);
-        enrollState.setPadding(0, 0, 0, pad / 2);
+        enrollState.setPadding(0, 0, 0, pad / 4);
         root.addView(enrollState);
         refreshState();
+
+        meterText = new TextView(this); // v58: bolo to ye hilega — na hile to mic band hai
+        meterText.setTextSize(14);
+        meterText.setTextColor(TXT);
+        meterText.setPadding(0, 0, 0, pad / 2);
+        root.addView(meterText);
 
         enrollBtn = mkButton("🎙️ Enroll — 3 baar bolo 'Main Mujahid hun'", CARD, TXT, pad);
         root.addView(enrollBtn);
@@ -64,6 +88,7 @@ public class VoiceIdActivity extends Activity {
             if (busy) return;
             busy = true;
             setButtons(false);
+            meterHandler.post(meterTick); // v58
             VoicePrint.enroll(this, listener());
         });
 
@@ -73,6 +98,7 @@ public class VoiceIdActivity extends Activity {
             if (busy) return;
             busy = true;
             setButtons(false);
+            meterHandler.post(meterTick); // v58
             VoicePrint.verify(this, listener());
         });
 
@@ -93,6 +119,7 @@ public class VoiceIdActivity extends Activity {
 
         TextView note = new TextView(this);
         note.setText("\nPehla qadam: score khula dikhega.\n90+ = Mujahid ✓ — neeche = unknown.\n"
+                + "Bolo to 'Mic' meter hilna chahiye — na hile to mic band hai.\n"
                 + "Shor/zukam se score hil sakta hai — mil ke tune karenge.");
         note.setTextSize(12);
         note.setTextColor(HINT);

@@ -40,6 +40,9 @@ public class VoicePrint {
 
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
+    /** v58: live mic level 0-100 — enroll/test screen pe meter ke liye. */
+    public static volatile int micLevel = 0;
+
     private static void post(Listener l, String s) {
         MAIN.post(() -> l.onStatus(s));
     }
@@ -65,8 +68,9 @@ public class VoicePrint {
         new Thread(() -> {
             double[][] vecs = new double[ENROLL_SAMPLES][];
             for (int i = 0; i < ENROLL_SAMPLES; i++) {
-                post(l, "Sample " + (i + 1) + "/" + ENROLL_SAMPLES
-                        + " — bolo 'Main Mujahid hun'");
+                post(l, "Sample " + (i + 1) + "/" + ENROLL_SAMPLES + " — tayyar ho jao...");
+                try { Thread.sleep(900); } catch (Exception ignored) { } // v58: position ka waqt
+                post(l, "Bolo 'Main Mujahid hun'");
                 short[] pcm = record(REC_MS);
                 if (pcm == null) {
                     done(l, false, "Mic nahi khula — Live call band karo, phir try karo.");
@@ -74,7 +78,7 @@ public class VoicePrint {
                 }
                 vecs[i] = mfccMean(pcm);
                 if (vecs[i] == null) {
-                    done(l, false, "Awaz saaf nahi aayi — thoda zor se bolo.");
+                    done(l, false, "Awaz theek se pakri nahi gayi — dobara try karo."); // v58: ilzaam nahi
                     return;
                 }
                 post(l, "Sample " + (i + 1) + " done ✓");
@@ -99,6 +103,8 @@ public class VoicePrint {
                 done(l, false, "Pehle Enroll karo.");
                 return;
             }
+            post(l, "Tayyar ho jao..."); // v58
+            try { Thread.sleep(900); } catch (Exception ignored) { }
             post(l, "Bolo kuch (2 second)...");
             short[] pcm = record(REC_MS);
             if (pcm == null) {
@@ -107,7 +113,7 @@ public class VoicePrint {
             }
             double[] v = mfccMean(pcm);
             if (v == null) {
-                done(l, false, "Awaz saaf nahi aayi — thoda zor se bolo.");
+                done(l, false, "Awaz theek se pakri nahi gayi — dobara try karo."); // v58: ilzaam nahi
                 return;
             }
             double cos = cosine(v, tpl);
@@ -142,8 +148,15 @@ public class VoicePrint {
             while (read < total) {
                 int r = rec.read(pcm, read, total - read);
                 if (r <= 0) break;
+                int peak = 0; // v58: live meter ke liye chunk ki peak
+                for (int i = read; i < read + r; i++) {
+                    int a = Math.abs(pcm[i]);
+                    if (a > peak) peak = a;
+                }
+                micLevel = peak * 100 / 32768;
                 read += r;
             }
+            micLevel = 0;
             try { rec.stop(); } catch (Exception ignored) { }
             rec.release();
             return read > SR / 2 ? pcm : null; // kam se kam 0.5s
@@ -173,7 +186,6 @@ public class VoicePrint {
 
         // pehle frame energies (khamoshi hatane ke liye)
         double[] energy = new double[nFrames];
-        double maxE = 0;
         for (int f = 0; f < nFrames; f++) {
             double e = 0;
             int s = f * hop;
@@ -182,15 +194,20 @@ public class VoicePrint {
                 e += v * v;
             }
             energy[f] = e / frameLen;
-            if (e > maxE) maxE = e;
         }
-        if (maxE <= 0) return null;
+        // v58: MEDIAN-based gate — ek tez transient (saans ka blast, mic pe haath,
+        // "p" ki phoonk) max ko hijack karke asal awaz phenk deta tha. Median dhoka nahi khata.
+        double[] sorted = energy.clone();
+        java.util.Arrays.sort(sorted);
+        double median = sorted[nFrames / 2];
+        if (median < 1e-7) return null; // mic me kuch nahi aaya
+        double thr = median * 0.05;
 
         double[] sum = new double[13];
         int kept = 0;
         double[] re = new double[nfft], im = new double[nfft];
         for (int f = 0; f < nFrames; f++) {
-            if (energy[f] < maxE * 0.02) continue; // khamosh frame chhoro
+            if (energy[f] < thr) continue; // v58: median gate
             int s = f * hop;
             for (int i = 0; i < nfft; i++) {
                 re[i] = (i < frameLen) ? x[s + i] * ham[i] : 0;
