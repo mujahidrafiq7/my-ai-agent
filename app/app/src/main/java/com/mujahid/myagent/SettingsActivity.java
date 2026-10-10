@@ -224,61 +224,105 @@ public class SettingsActivity extends Activity {
                 .edit().putBoolean("floating_orb", on).apply();
     }
 
-    /** v56: Emotion picker — Ayesha kis mood me baat kare. */
+    /** v56: Emotion picker — v59: "Auto" sab se upar (awaz ka lehja sun ke khud). */
     public static final String[] EMOTIONS =
-            {"Normal", "Happy", "Sad", "Angry", "Romantic", "Emotional", "Excited"};
+            {"Auto", "Normal", "Happy", "Sad", "Angry", "Romantic", "Emotional", "Excited"};
 
     public static int emotionIdx(Context ctx) {
-        int i = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-                .getInt("emotion_idx", 0);
+        SharedPreferences p = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        if (!p.getBoolean("emotion_v2", false)) { // v59: Auto upar aaya — purani choice +1
+            int v = p.contains("emotion_idx") ? p.getInt("emotion_idx", 0) + 1 : 0;
+            if (v >= EMOTIONS.length) v = 0;
+            p.edit().putInt("emotion_idx", v).putBoolean("emotion_v2", true).apply();
+            return v;
+        }
+        int i = p.getInt("emotion_idx", 0);
         return (i >= 0 && i < EMOTIONS.length) ? i : 0;
     }
 
     /** System prompt me jodne wali line — Live + Chat dono me lagti hai. */
     public static String emotionPrompt(Context ctx) {
         switch (emotionIdx(ctx)) {
-            case 1: return "Emotional tone: cheerful and upbeat — happy, lively, full of energy.";
-            case 2: return "Emotional tone: sad and gentle — soft, a little heavy-hearted, comforting.";
-            case 3: return "Emotional tone: angry — sharp, short-tempered, fiery words (never abusive).";
-            case 4: return "Emotional tone: romantic — sweet, tender, loving words.";
-            case 5: return "Emotional tone: deeply emotional — heartfelt, expressive, moves the heart.";
-            case 6: return "Emotional tone: excited — enthusiastic, thrilled, high energy.";
+            case 0: return "EMOTION AUTO: The user is speaking to you with their voice. "
+                    + "Listen carefully to their TONE in every message — happy, sad, angry, "
+                    + "romantic, emotional, excited or calm — and automatically speak in the "
+                    + "matching emotional tone: gentle and comforting if they sound sad, "
+                    + "calm and steady if they sound angry, tender and loving if romantic, "
+                    + "cheerful if happy. Never announce that you are detecting emotion; "
+                    + "just naturally speak in the matching tone.";
+            case 2: return "Emotional tone: cheerful and upbeat — happy, lively, full of energy.";
+            case 3: return "Emotional tone: sad and gentle — soft, a little heavy-hearted, comforting.";
+            case 4: return "Emotional tone: angry — sharp, short-tempered, fiery words (never abusive).";
+            case 5: return "Emotional tone: romantic — sweet, tender, loving words.";
+            case 6: return "Emotional tone: deeply emotional — heartfelt, expressive, moves the heart.";
+            case 7: return "Emotional tone: excited — enthusiastic, thrilled, high energy.";
             default: return "Emotional tone: natural and balanced.";
         }
     }
 
-    /** v53: Voice + Personality — MYRA jaisa picker. */
+    /** v59: Voice Auto — Emotion setting se awaz (beech call me awaz nahi badal sakti). */
     public static final String[] VOICE_IDS = {"Sulafat", "Aoede", "Kore", "Puck"};
     public static final String[] VOICE_LABELS =
-            {"Sulafat – Warm", "Aoede – Soft", "Kore – Bright", "Puck – Deep"};
+            {"Auto — mood ke hisaab se", "Sulafat – Warm", "Aoede – Soft", "Kore – Bright", "Puck – Deep"};
 
     public static int voiceIdx(Context ctx) {
-        int i = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-                .getInt("voice_idx", 2); // default Kore — pehle jaisi awaz
-        return (i >= 0 && i < VOICE_IDS.length) ? i : 2;
+        SharedPreferences p = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        if (!p.getBoolean("voice_v2", false)) { // v59: Auto upar aaya — purani choice +1
+            int v = p.contains("voice_idx") ? p.getInt("voice_idx", 2) + 1 : 0;
+            if (v >= VOICE_LABELS.length) v = 0;
+            p.edit().putInt("voice_idx", v).putBoolean("voice_v2", true).apply();
+            return v;
+        }
+        int i = p.getInt("voice_idx", 0);
+        return (i >= 0 && i < VOICE_LABELS.length) ? i : 0;
     }
 
     public static String liveVoiceName(Context ctx) {
-        return VOICE_IDS[voiceIdx(ctx)];
+        int vi = voiceIdx(ctx);
+        if (vi == 0) {
+            switch (emotionIdx(ctx)) {
+                case 3: return "Aoede";   // Sad → naram
+                case 4: return "Puck";    // Angry → gehra
+                case 5: return "Sulafat"; // Romantic → warm
+                case 6: return "Sulafat"; // Emotional → warm
+                case 7: return "Puck";     // Excited → gehra
+                case 2: return "Kore";    // Happy → bright
+                default: return "Kore";   // Auto/Normal → default
+            }
+        }
+        return VOICE_IDS[vi - 1];
     }
 
+    /** v59: Personality Auto — bolne ke andaz se khud dhal jao. */
     public static final String[] PERSONALITIES =
-            {"Friendly", "GF Mode", "Boss Mode", "Funny", "Calm"};
+            {"Auto", "Friendly", "GF Mode", "Boss Mode", "Funny", "Calm"};
 
     public static int personalityIdx(Context ctx) {
-        int i = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-                .getInt("personality_idx", 0);
+        SharedPreferences p = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        if (!p.getBoolean("pers_v2", false)) { // v59: Auto upar aaya — purani choice +1
+            int v = p.contains("personality_idx") ? p.getInt("personality_idx", 0) + 1 : 0;
+            if (v >= PERSONALITIES.length) v = 0;
+            p.edit().putInt("personality_idx", v).putBoolean("pers_v2", true).apply();
+            return v;
+        }
+        int i = p.getInt("personality_idx", 0);
         return (i >= 0 && i < PERSONALITIES.length) ? i : 0;
     }
 
     /** System prompt me jodne wali line — Live + Chat dono me lagti hai. */
     public static String personalityPrompt(Context ctx) {
         switch (personalityIdx(ctx)) {
-            case 1: return "Personality style: like a sweet, caring girlfriend — "
+            case 0: return "PERSONALITY AUTO: Listen to HOW the user talks — their style, mood "
+                    + "and energy from their voice and words. Automatically adapt your "
+                    + "personality to match the moment: playful and funny if they are joking, "
+                    + "warm and caring if they sound emotional, sharp and direct if they are "
+                    + "serious, sweet and loving if they are romantic. Never announce the "
+                    + "adaptation; just naturally be what the moment needs.";
+            case 2: return "Personality style: like a sweet, caring girlfriend — "
                     + "affectionate, a little playful, warm. Make him smile.";
-            case 2: return "Personality style: confident and to-the-point, respectful boss-like tone.";
-            case 3: return "Personality style: light-hearted and playful — keep it fun, never rude.";
-            case 4: return "Personality style: calm and soothing — gentle, unhurried.";
+            case 3: return "Personality style: confident and to-the-point, respectful boss-like tone.";
+            case 4: return "Personality style: light-hearted and playful — keep it fun, never rude.";
+            case 5: return "Personality style: calm and soothing — gentle, unhurried.";
             default: return "Personality style: warm and friendly, like a caring friend.";
         }
     }
