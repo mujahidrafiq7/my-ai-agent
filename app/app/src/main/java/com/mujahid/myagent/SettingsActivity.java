@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.InputType;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -134,32 +135,75 @@ public class SettingsActivity extends Activity {
                 .show();
     }
 
-    private void showKeysDialog() {        StringBuilder sb = new StringBuilder();
-        for (int i = 1; i <= Keys.MAX_KEYS; i++) {
-            String k = Keys.geminiKeyAt(this, i);
-            sb.append("Gemini Key ").append(i).append(":\n")
-              .append(k.isEmpty() ? "(empty)" : k).append("\n\n");
+    /** v53: Voice + Personality — MYRA jaisa picker. */
+    public static final String[] VOICE_IDS = {"Sulafat", "Aoede", "Kore", "Puck"};
+    public static final String[] VOICE_LABELS =
+            {"Sulafat – Warm", "Aoede – Soft", "Kore – Bright", "Puck – Deep"};
+
+    public static int voiceIdx(Context ctx) {
+        int i = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                .getInt("voice_idx", 2); // default Kore — pehle jaisi awaz
+        return (i >= 0 && i < VOICE_IDS.length) ? i : 2;
+    }
+
+    public static String liveVoiceName(Context ctx) {
+        return VOICE_IDS[voiceIdx(ctx)];
+    }
+
+    public static final String[] PERSONALITIES =
+            {"Friendly", "Boss Mode", "Funny", "Calm"};
+
+    public static int personalityIdx(Context ctx) {
+        int i = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                .getInt("personality_idx", 0);
+        return (i >= 0 && i < PERSONALITIES.length) ? i : 0;
+    }
+
+    /** System prompt me jodne wali line — Live + Chat dono me lagti hai. */
+    public static String personalityPrompt(Context ctx) {
+        switch (personalityIdx(ctx)) {
+            case 1: return "Personality style: confident and to-the-point, respectful boss-like tone.";
+            case 2: return "Personality style: light-hearted and playful — keep it fun, never rude.";
+            case 3: return "Personality style: calm and soothing — gentle, unhurried.";
+            default: return "Personality style: warm and friendly, like a caring friend.";
         }
-        String g = Keys.groqKey(this);
-        sb.append("Groq Key:\n").append(g.isEmpty() ? "(empty)" : g);
+    }
 
-        TextView tv = new TextView(this);
-        tv.setText(sb.toString());
-        tv.setTextColor(TXT);
-        tv.setTextSize(13);
-        tv.setTextIsSelectable(true);
-        int p = (int) (16 * getResources().getDisplayMetrics().density);
-        tv.setPadding(p, p, p, p);
-
-        ScrollView sv = new ScrollView(this);
-        sv.setBackgroundColor(BG);
-        sv.addView(tv);
-
+    /** v53: Voice chuno — agli Live call se nayi awaz. */
+    private void showVoiceDialog(TextView valueView) {
         new android.app.AlertDialog.Builder(this)
-                .setTitle("Keys")
-                .setView(sv)
-                .setPositiveButton("Close", null)
+                .setTitle("Voice")
+                .setSingleChoiceItems(VOICE_LABELS, voiceIdx(this),
+                        (d, which) -> {
+                            getSharedPreferences("app_settings", MODE_PRIVATE)
+                                    .edit().putInt("voice_idx", which).apply();
+                            valueView.setText(VOICE_LABELS[which]);
+                            d.dismiss();
+                        })
+                .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    /** v53: Personality chuno — agli baat se naya andaz. */
+    private void showPersonalityDialog(TextView valueView) {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Personality")
+                .setSingleChoiceItems(PERSONALITIES, personalityIdx(this),
+                        (d, which) -> {
+                            getSharedPreferences("app_settings", MODE_PRIVATE)
+                                    .edit().putInt("personality_idx", which).apply();
+                            valueView.setText(PERSONALITIES[which]);
+                            d.dismiss();
+                        })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    /** v53: Keys box ka status — kitni keys set hain. */
+    private String keyStatusText() {
+        int n = Keys.geminiKeys(this).size();
+        String g = Keys.groqKey(this);
+        return "(" + n + " Gemini" + (g.isEmpty() ? "" : " + Groq") + " set)";
     }
 
     @Override
@@ -233,6 +277,32 @@ public class SettingsActivity extends Activity {
         themeRow.setOnClickListener(v -> showThemeDialog(themeValue));
         root.addView(themeRow);
 
+        // ---- v53: Voice picker (MYRA jaisa) ----
+        LinearLayout voiceRow = new LinearLayout(this);
+        voiceRow.setOrientation(LinearLayout.HORIZONTAL);
+        voiceRow.setPadding(0, 0, 0, pad / 2);
+        TextView voiceLabel = darkLabel("Voice", 15);
+        voiceLabel.setLayoutParams(llp);
+        voiceRow.addView(voiceLabel);
+        TextView voiceValue = darkLabel(VOICE_LABELS[voiceIdx(this)], 14);
+        voiceValue.setTextColor(ACCENT);
+        voiceRow.addView(voiceValue);
+        voiceRow.setOnClickListener(v -> showVoiceDialog(voiceValue));
+        root.addView(voiceRow);
+
+        // ---- v53: Personality picker ----
+        LinearLayout persRow = new LinearLayout(this);
+        persRow.setOrientation(LinearLayout.HORIZONTAL);
+        persRow.setPadding(0, 0, 0, pad / 2);
+        TextView persLabel = darkLabel("Personality", 15);
+        persLabel.setLayoutParams(llp);
+        persRow.addView(persLabel);
+        TextView persValue = darkLabel(PERSONALITIES[personalityIdx(this)], 14);
+        persValue.setTextColor(ACCENT);
+        persRow.addView(persValue);
+        persRow.setOnClickListener(v -> showPersonalityDialog(persValue));
+        root.addView(persRow);
+
         // ---- Weather API key (v40 Yaadein): key SIRF is phone me rehti hai ----
         LinearLayout wxRow = new LinearLayout(this);
         wxRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -246,10 +316,27 @@ public class SettingsActivity extends Activity {
         wxRow.setOnClickListener(v -> showWeatherKeyDialog(wxStatus));
         root.addView(wxRow);
 
-        // ---- Keys: sari keys ek jagah dekho ----
-        Button keysBtn = darkButton("Keys");
-        keysBtn.setOnClickListener(v -> showKeysDialog());
-        root.addView(keysBtn);
+        // ---- v53: Keys ek box me — dabao to khule, warna chhupa rahe ----
+        LinearLayout keyRow = new LinearLayout(this);
+        keyRow.setOrientation(LinearLayout.HORIZONTAL);
+        keyRow.setPadding(0, 0, 0, pad / 2);
+        TextView keyLabel = darkLabel("🔑 Keys", 15);
+        keyLabel.setLayoutParams(llp);
+        keyRow.addView(keyLabel);
+        TextView keyStatus = darkLabel(keyStatusText(), 13);
+        keyStatus.setTextColor(HINT);
+        keyRow.addView(keyStatus);
+        root.addView(keyRow);
+
+        LinearLayout keysBox = new LinearLayout(this);
+        keysBox.setOrientation(LinearLayout.VERTICAL);
+        keysBox.setVisibility(View.GONE);
+        root.addView(keysBox);
+        keyRow.setOnClickListener(v -> {
+            boolean open = keysBox.getVisibility() != View.VISIBLE;
+            keysBox.setVisibility(open ? View.VISIBLE : View.GONE);
+            keyStatus.setText(open ? "(tap to close)" : keyStatusText());
+        });
 
         // ---- Gemini Live test (Stage 1: connection test) ----
         Button liveBtn = darkButton("Live API Test (experimental)");
@@ -261,30 +348,30 @@ public class SettingsActivity extends Activity {
                 + "Make each key from a DIFFERENT Gmail (2 keys from one Gmail = one shared limit)",
                 15);
         title.setPadding(0, 0, 0, pad / 2);
-        root.addView(title);
+        keysBox.addView(title);
 
         for (int i = 1; i <= Keys.MAX_KEYS; i++) {
             TextView label = darkLabel("Gemini Key " + i + " (AI Studio)", 14);
             label.setPadding(0, pad / 2, 0, 0);
-            root.addView(label);
+            keysBox.addView(label);
 
             EditText in = darkInput("Paste key " + i + " here (can leave empty)");
             in.setInputType(InputType.TYPE_CLASS_TEXT
                     | InputType.TYPE_TEXT_VARIATION_PASSWORD);
             in.setText(Keys.geminiKeyAt(this, i));
-            root.addView(in);
+            keysBox.addView(in);
             keyInputs.add(in);
         }
 
         TextView groqLabel = darkLabel("Groq API Key (backup brain + speech recognition)", 14);
         groqLabel.setPadding(0, pad, 0, 0);
-        root.addView(groqLabel);
+        keysBox.addView(groqLabel);
 
         groqInput = darkInput("Paste Groq key here");
         groqInput.setInputType(InputType.TYPE_CLASS_TEXT
                 | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         groqInput.setText(Keys.groqKey(this));
-        root.addView(groqInput);
+        keysBox.addView(groqInput);
 
         Button save = darkButton("Save");
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -292,7 +379,7 @@ public class SettingsActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.topMargin = pad;
         save.setLayoutParams(lp);
-        root.addView(save);
+        keysBox.addView(save);
 
         save.setOnClickListener(v -> {
             List<String> keys = new ArrayList<>();
