@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mujahid.myagent"
-    android:versionCode="60"
-    android:versionName="1.0-sach">
+    android:versionCode="61"
+    android:versionName="1.0-dekho">
 
     <!-- Manual aapt2 build ke liye SDK yahin declare — taake targetSdk kabhi miss na ho -->
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
