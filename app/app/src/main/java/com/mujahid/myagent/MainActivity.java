@@ -73,6 +73,8 @@ public class MainActivity extends Activity {
                 startActivity(new Intent(this, ChatActivity.class)));
         findViewById(R.id.navVoice).setOnClickListener(v -> toggleConversation());
         findViewById(R.id.navMemory).setOnClickListener(v -> showMemories());
+        findViewById(R.id.navHistory).setOnClickListener(v -> // v52 "History"
+                startActivity(new Intent(this, HistoryActivity.class)));
         findViewById(R.id.navSettings).setOnClickListener(v ->
                 startActivity(new Intent(this, SettingsActivity.class)));
 

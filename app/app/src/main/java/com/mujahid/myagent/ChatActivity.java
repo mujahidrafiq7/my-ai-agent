@@ -26,6 +26,7 @@ public class ChatActivity extends Activity {
 
     // Voice wali history se ALAG — chat ka apna session
     private final List<ChatClient.Message> history = ChatClient.newHistory();
+    private String lastDay = ""; // v52: din ki header ek baar
 
     @Override
     protected void onCreate(Bundle b) {
@@ -39,6 +40,13 @@ public class ChatActivity extends Activity {
         inputText = findViewById(R.id.inputText);
         sendBtn = findViewById(R.id.sendBtn);
 
+        // v52 "History": purani baatein wapas lao
+        for (ChatHistory.Entry e : ChatHistory.load(this)) {
+            history.add(new ChatClient.Message(e.role, e.text));
+            addDayHeader(e.time);
+            addLog((e.role.equals("user") ? "You: " : "Agent: ") + e.text);
+        }
+
         sendBtn.setOnClickListener(v -> {
             if (busy) {
                 toast("Let this reply finish first.");
@@ -47,6 +55,7 @@ public class ChatActivity extends Activity {
             String t = inputText.getText().toString().trim();
             if (t.isEmpty()) return;
             inputText.setText("");
+            addDayHeader(System.currentTimeMillis()); // v52: naya din ho to header
             runChat(t);
         });
     }
@@ -66,6 +75,8 @@ public class ChatActivity extends Activity {
             Memory.save(this, memFact);
             history.add(new ChatClient.Message("user", userText));
             history.add(new ChatClient.Message("model", "Remembered: " + memFact));
+            saveMsg("user", userText); // v52
+            saveMsg("model", "Remembered: " + memFact); // v52
             final String fact = memFact;
             ui(() -> {
                 addLog("🧠 Remembered: " + fact);
@@ -75,12 +86,14 @@ public class ChatActivity extends Activity {
             return;
         }
         history.add(new ChatClient.Message("user", userText));
+        saveMsg("user", userText); // v52
         ui(() -> addLog("You: " + userText));
 
         // Phone command? (bina quota, phone me hi) — voice ki tarah yahan bhi
         PhoneTools.Result cmd = PhoneTools.tryHandle(ChatActivity.this, userText);
         if (cmd.handled) {
             history.add(new ChatClient.Message("model", cmd.reply));
+            saveMsg("model", cmd.reply); // v52
             ui(() -> {
                 addLog("Agent: " + cmd.reply);
                 setStatus("💬 Text chat — type and read only.");
@@ -109,6 +122,7 @@ public class ChatActivity extends Activity {
                 reply = ChatClient.applyAutoMemory(ChatActivity.this, reply);
                 final String cleanReply = reply;
                 history.add(new ChatClient.Message("model", cleanReply));
+                saveMsg("model", cleanReply); // v52
                 ui(() -> {
                     addLog("Agent: " + cleanReply);
                     setStatus("💬 Text chat — type and read only.");
@@ -125,6 +139,22 @@ public class ChatActivity extends Activity {
     }
 
     // ---------- chhoti madadgar ----------
+
+    /** v52: naye din ki header (ek din me ek baar). */
+    private void addDayHeader(long time) {
+        if (time <= 0) return;
+        String day = new java.text.SimpleDateFormat("d MMM yyyy",
+                java.util.Locale.US).format(new java.util.Date(time));
+        if (!day.equals(lastDay)) {
+            lastDay = day;
+            addLog("— " + day + " —");
+        }
+    }
+
+    /** v52: baat file me bhi save (peeche thread me, UI nahi rukegi). */
+    private void saveMsg(String role, String text) {
+        new Thread(() -> ChatHistory.append(ChatActivity.this, role, text)).start();
+    }
 
     private void setStatus(String s) {
         runOnUiThread(() -> statusText.setText(s));

@@ -26,14 +26,14 @@ public class Themes {
             "Violet Haze", "Rose Dark", "Pure Black"
     };
 
-    // har theme: {bg, card, text, hint, accent}
+    // har theme: {bg, card, text, hint, accent} — wazeh farq wale rang (v51 fix)
     private static final int[][] COLORS = {
-            {0xFF060A12, 0xFF141B28, 0xFFE8EEF4, 0xFF788C9B, 0xFF00E5FF}, // Teal Pulse
-            {0xFF050914, 0xFF101A30, 0xFFE8EEF4, 0xFF7A8CA0, 0xFF2E9BFF}, // Midnight Blue
-            {0xFF0F0608, 0xFF1F1013, 0xFFF4E8E8, 0xFF9B7880, 0xFFFF3B5C}, // Crimson Dark
-            {0xFF0A0612, 0xFF171028, 0xFFEEE8F4, 0xFF8C789B, 0xFFA855F7}, // Violet Haze
-            {0xFF0D0608, 0xFF221016, 0xFFF4E8EC, 0xFF9B7886, 0xFFFB7185}, // Rose Dark
-            {0xFF000000, 0xFF111111, 0xFFFFFFFF, 0xFF888888, 0xFF00E5FF}, // Pure Black
+            {0xFF060A12, 0xFF141B28, 0xFFE8EEF4, 0xFF788C9B, 0xFF00E5FF}, // Teal Pulse (default)
+            {0xFF0A1A33, 0xFF14294D, 0xFFEAF2FF, 0xFF7A90B0, 0xFF2E9BFF}, // Midnight Blue
+            {0xFF20090D, 0xFF3A1219, 0xFFFFEDED, 0xFFB08A8A, 0xFFFF3B5C}, // Crimson Dark
+            {0xFF170D26, 0xFF2A1A45, 0xFFF2EAFB, 0xFF9A8AB0, 0xFFA855F7}, // Violet Haze
+            {0xFF220D12, 0xFF3D1620, 0xFFFFEBEF, 0xFFB08A92, 0xFFFB7185}, // Rose Dark
+            {0xFF000000, 0xFF161616, 0xFFFFFFFF, 0xFF909090, 0xFF00E5FF}, // Pure Black
     };
 
     public static int count() { return NAMES.length; }
