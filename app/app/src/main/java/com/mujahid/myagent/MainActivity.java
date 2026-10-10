@@ -91,6 +91,11 @@ public class MainActivity extends Activity {
                 SettingsActivity.isLightingOn(this) ? View.VISIBLE : View.GONE);
         syncUi();
         syncShareBtn();
+        // v60: service jab WAQAI start ho (async race fix) — tabhi button ON + elan.
+        ScreenShare.setStateListener(isOn -> runOnUiThread(() -> {
+            syncShareBtn();
+            if (isOn) toast("Screen share ON — ab 'screen pe kya hai' pucho!");
+        }));
         // Voice se "screen share on karo" → auto permission dialog
         if (getIntent() != null && getIntent().getBooleanExtra(
                 ScreenShare.EXTRA_AUTO_SHARE, false)) {
@@ -121,9 +126,12 @@ public class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == ScreenShare.REQ_CAPTURE) {
             // v43: system permission dialog ka jawab
+            // v60: RESULT_OK = permission MILI — service async start hogi.
+            // Foran isOn() check jhoot bolta tha ("permission chahiye thi" + OFF),
+            // is liye yahan sirf deny pe wahi kaho; ON ka elan listener karega.
             ScreenShare.onPermissionResult(this, resultCode, data);
-            if (ScreenShare.isOn()) {
-                toast("Screen share ON — ab 'screen pe kya hai' pucho!");
+            if (resultCode == Activity.RESULT_OK) {
+                toast("Screen share start ho raha hai...");
             } else {
                 toast("Screen share ke liye permission chahiye thi.");
             }
@@ -134,6 +142,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         VoiceService.setStatusListener(null);
+        ScreenShare.setStateListener(null); // v60: leak se bachao
         super.onPause();
     }
 
