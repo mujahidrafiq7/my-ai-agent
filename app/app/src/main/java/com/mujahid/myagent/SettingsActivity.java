@@ -434,6 +434,17 @@ public class SettingsActivity extends Activity {
         memCard.addView(memSwitch);
         root.addView(memCard);
 
+        // ===== VOICE ID (v57 pehla qadam) =====
+        root.addView(sectionHeader("VOICE ID"));
+
+        LinearLayout vidCard = settingCard("Voice ID", "tumhari awaz ka naqsha");
+        TextView vidValue = valueLabel(
+                VoicePrint.isEnrolled(this) ? "Enrolled ✓" : "Not enrolled");
+        vidCard.addView(vidValue);
+        vidCard.setOnClickListener(v ->
+                startActivity(new Intent(this, VoiceIdActivity.class)));
+        root.addView(vidCard);
+
         // ===== KEYS & DATA =====
         root.addView(sectionHeader("KEYS & DATA"));
 
