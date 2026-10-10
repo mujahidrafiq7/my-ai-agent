@@ -6,12 +6,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.view.Gravity;
 import android.text.InputType;
 import android.view.View;
 import android.widget.Button;
@@ -82,14 +84,78 @@ public class SettingsActivity extends Activity {
         return t;
     }
 
+    private int dp(int v) {
+        return (int) (v * getResources().getDisplayMetrics().density);
+    }
+
+    /** v55: MYRA-style section header — chhote caps, halka rang. */
+    private TextView sectionHeader(String s) {
+        TextView t = new TextView(this);
+        t.setText(s);
+        t.setTextSize(12);
+        t.setTextColor(HINT);
+        t.setLetterSpacing(0.12f);
+        t.setPadding(dp(4), dp(14), 0, dp(6));
+        return t;
+    }
+
+    /** v55: MYRA-style gol card — title (+subtitle), control daayein. */
+    private LinearLayout settingCard(String title, String subtitle) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setClickable(true);
+        card.setFocusable(true);
+        GradientDrawable gd = new GradientDrawable();
+        gd.setColor(CARD);
+        gd.setCornerRadius(dp(28));
+        card.setBackground(gd);
+        int p = dp(16);
+        card.setPadding(p, (int) (p * 0.8), p, (int) (p * 0.8));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(10);
+        card.setLayoutParams(lp);
+
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        col.setLayoutParams(clp);
+        col.addView(darkLabel(title, 15));
+        if (subtitle != null && !subtitle.isEmpty()) {
+            TextView sub = darkLabel(subtitle, 12);
+            sub.setTextColor(HINT);
+            col.addView(sub);
+        }
+        card.addView(col);
+        return card;
+    }
+
+    /** v55: card me daayein taraf accent rang ki value (jaise MYRA). */
+    private TextView valueLabel(String s) {
+        TextView v = darkLabel(s, 14);
+        v.setTextColor(ACCENT);
+        return v;
+    }
+
     private EditText darkInput(String hint) {
         EditText in = new EditText(this);
         in.setHint(hint);
         in.setHintTextColor(HINT);
         in.setTextColor(TXT);
-        in.setBackgroundColor(CARD);
-        int pad = (int) (10 * getResources().getDisplayMetrics().density);
+        GradientDrawable gd = new GradientDrawable();
+        gd.setColor(BG);
+        gd.setCornerRadius(dp(20));
+        in.setBackground(gd);
+        int pad = dp(12);
         in.setPadding(pad, pad, pad, pad);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(6);
+        in.setLayoutParams(lp);
         return in;
     }
 
@@ -97,7 +163,17 @@ public class SettingsActivity extends Activity {
         Button b = new Button(this);
         b.setText(s);
         b.setTextColor(TXT);
-        b.setBackgroundColor(CARD);
+        GradientDrawable gd = new GradientDrawable();
+        gd.setColor(CARD);
+        gd.setCornerRadius(dp(28));
+        b.setBackground(gd);
+        int p = dp(14);
+        b.setPadding(p, p, p, p);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(10);
+        b.setLayoutParams(lp);
         return b;
     }
 
@@ -233,98 +309,50 @@ public class SettingsActivity extends Activity {
         scroll.setBackgroundColor(BG);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        int pad = dp(16);
         root.setPadding(pad, pad, pad, pad);
         scroll.addView(root);
         setContentView(scroll);
 
-        // ---- Neon lighting on/off ----
-        LinearLayout lightRow = new LinearLayout(this);
-        lightRow.setOrientation(LinearLayout.HORIZONTAL);
-        lightRow.setPadding(0, 0, 0, pad / 2);
-        TextView lightLabel = darkLabel("Neon Lighting", 15);
-        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        lightLabel.setLayoutParams(llp);
-        lightRow.addView(lightLabel);
+        // ===== APPEARANCE (v55: MYRA-style professional cards) =====
+        root.addView(sectionHeader("APPEARANCE"));
+
+        LinearLayout lightCard = settingCard("Neon Lighting", null);
         Switch lightSwitch = new Switch(this);
         lightSwitch.setChecked(isLightingOn(this));
         lightSwitch.setOnCheckedChangeListener((v, on) -> setLightingOn(this, on));
-        lightRow.addView(lightSwitch);
-        root.addView(lightRow);
+        lightCard.addView(lightSwitch);
+        root.addView(lightCard);
 
-        // ---- Auto Memory on/off: Ayesha khud yaadein save/delete kare ----
-        LinearLayout memRow = new LinearLayout(this);
-        memRow.setOrientation(LinearLayout.HORIZONTAL);
-        memRow.setPadding(0, 0, 0, pad / 2);
-        TextView memLabel = darkLabel("Auto Memory (she remembers herself)", 15);
-        memLabel.setLayoutParams(llp);
-        memRow.addView(memLabel);
-        Switch memSwitch = new Switch(this);
-        memSwitch.setChecked(isAutoMemoryOn(this));
-        memSwitch.setOnCheckedChangeListener((v, on) -> setAutoMemoryOn(this, on));
-        memRow.addView(memSwitch);
-        root.addView(memRow);
+        LinearLayout themeCard = settingCard("Theme", null);
+        TextView themeValue = valueLabel(Themes.NAMES[Themes.index(this)]);
+        themeCard.addView(themeValue);
+        themeCard.setOnClickListener(v -> showThemeDialog(themeValue));
+        root.addView(themeCard);
 
-        // ---- Live Voice on/off: mic button seedha Gemini Live (v38) ----
-        LinearLayout liveRow = new LinearLayout(this);
-        liveRow.setOrientation(LinearLayout.HORIZONTAL);
-        liveRow.setPadding(0, 0, 0, pad / 2);
-        TextView liveLabel = darkLabel("Live Voice (real-time)", 15);
-        liveLabel.setLayoutParams(llp);
-        liveRow.addView(liveLabel);
+        // ===== AI & VOICE =====
+        root.addView(sectionHeader("AI & VOICE"));
+
+        LinearLayout liveCard = settingCard("Live Voice", "real-time voice chat");
         Switch liveSwitch = new Switch(this);
         liveSwitch.setChecked(isLiveVoiceOn(this));
         liveSwitch.setOnCheckedChangeListener((v, on) -> setLiveVoiceOn(this, on));
-        liveRow.addView(liveSwitch);
-        root.addView(liveRow);
+        liveCard.addView(liveSwitch);
+        root.addView(liveCard);
 
-        // ---- Theme (v51 "Rang"): 6 rang, dabao to chunne ka dialog ----
-        LinearLayout themeRow = new LinearLayout(this);
-        themeRow.setOrientation(LinearLayout.HORIZONTAL);
-        themeRow.setPadding(0, 0, 0, pad / 2);
-        TextView themeLabel = darkLabel("Theme", 15);
-        themeLabel.setLayoutParams(llp);
-        themeRow.addView(themeLabel);
-        TextView themeValue = darkLabel(Themes.NAMES[Themes.index(this)], 14);
-        themeValue.setTextColor(ACCENT);
-        themeRow.addView(themeValue);
-        themeRow.setOnClickListener(v -> showThemeDialog(themeValue));
-        root.addView(themeRow);
+        LinearLayout voiceCard = settingCard("Voice", null);
+        TextView voiceValue = valueLabel(VOICE_LABELS[voiceIdx(this)]);
+        voiceCard.addView(voiceValue);
+        voiceCard.setOnClickListener(v -> showVoiceDialog(voiceValue));
+        root.addView(voiceCard);
 
-        // ---- v53: Voice picker (MYRA jaisa) ----
-        LinearLayout voiceRow = new LinearLayout(this);
-        voiceRow.setOrientation(LinearLayout.HORIZONTAL);
-        voiceRow.setPadding(0, 0, 0, pad / 2);
-        TextView voiceLabel = darkLabel("Voice", 15);
-        voiceLabel.setLayoutParams(llp);
-        voiceRow.addView(voiceLabel);
-        TextView voiceValue = darkLabel(VOICE_LABELS[voiceIdx(this)], 14);
-        voiceValue.setTextColor(ACCENT);
-        voiceRow.addView(voiceValue);
-        voiceRow.setOnClickListener(v -> showVoiceDialog(voiceValue));
-        root.addView(voiceRow);
+        LinearLayout persCard = settingCard("Personality", null);
+        TextView persValue = valueLabel(PERSONALITIES[personalityIdx(this)]);
+        persCard.addView(persValue);
+        persCard.setOnClickListener(v -> showPersonalityDialog(persValue));
+        root.addView(persCard);
 
-        // ---- v53: Personality picker ----
-        LinearLayout persRow = new LinearLayout(this);
-        persRow.setOrientation(LinearLayout.HORIZONTAL);
-        persRow.setPadding(0, 0, 0, pad / 2);
-        TextView persLabel = darkLabel("Personality", 15);
-        persLabel.setLayoutParams(llp);
-        persRow.addView(persLabel);
-        TextView persValue = darkLabel(PERSONALITIES[personalityIdx(this)], 14);
-        persValue.setTextColor(ACCENT);
-        persRow.addView(persValue);
-        persRow.setOnClickListener(v -> showPersonalityDialog(persValue));
-        root.addView(persRow);
-
-        // ---- v54 "Orb": Floating Orb on/off ----
-        LinearLayout orbRow = new LinearLayout(this);
-        orbRow.setOrientation(LinearLayout.HORIZONTAL);
-        orbRow.setPadding(0, 0, 0, pad / 2);
-        TextView orbLabel = darkLabel("Floating Orb", 15);
-        orbLabel.setLayoutParams(llp);
-        orbRow.addView(orbLabel);
+        LinearLayout orbCard = settingCard("Floating Orb", "button over other apps");
         Switch orbSwitch = new Switch(this);
         orbSwitch.setChecked(isOrbOn(this));
         orbSwitch.setOnCheckedChangeListener((v, on) -> {
@@ -334,7 +362,7 @@ public class SettingsActivity extends Activity {
                     Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                             android.net.Uri.parse("package:" + getPackageName()));
                     startActivity(i);
-                    orbSwitch.setChecked(false); // wapas off — permission ke baad dobara on karna
+                    orbSwitch.setChecked(false);
                     Toast.makeText(this,
                             "Pehle 'Display over other apps' allow karo, phir dobara ON karo.",
                             Toast.LENGTH_LONG).show();
@@ -349,59 +377,64 @@ public class SettingsActivity extends Activity {
                 stopService(new Intent(this, OrbService.class));
             }
         });
-        orbRow.addView(orbSwitch);
-        root.addView(orbRow);
+        orbCard.addView(orbSwitch);
+        root.addView(orbCard);
 
-        // ---- Weather API key (v40 Yaadein): key SIRF is phone me rehti hai ----
-        LinearLayout wxRow = new LinearLayout(this);
-        wxRow.setOrientation(LinearLayout.HORIZONTAL);
-        wxRow.setPadding(0, 0, 0, pad / 2);
-        TextView wxLabel = darkLabel("Weather API key", 15);
-        wxLabel.setLayoutParams(llp);
-        wxRow.addView(wxLabel);
-        TextView wxStatus = darkLabel(
-                LiveContext.weatherKey(this).isEmpty() ? "(not set)" : "(set ✓)", 13);
-        wxRow.addView(wxStatus);
-        wxRow.setOnClickListener(v -> showWeatherKeyDialog(wxStatus));
-        root.addView(wxRow);
+        // ===== MEMORY =====
+        root.addView(sectionHeader("MEMORY"));
 
-        // ---- v53: Keys ek box me — dabao to khule, warna chhupa rahe ----
-        LinearLayout keyRow = new LinearLayout(this);
-        keyRow.setOrientation(LinearLayout.HORIZONTAL);
-        keyRow.setPadding(0, 0, 0, pad / 2);
-        TextView keyLabel = darkLabel("🔑 Keys", 15);
-        keyLabel.setLayoutParams(llp);
-        keyRow.addView(keyLabel);
-        TextView keyStatus = darkLabel(keyStatusText(), 13);
-        keyStatus.setTextColor(HINT);
-        keyRow.addView(keyStatus);
-        root.addView(keyRow);
+        LinearLayout memCard = settingCard("Auto Memory", "she remembers herself");
+        Switch memSwitch = new Switch(this);
+        memSwitch.setChecked(isAutoMemoryOn(this));
+        memSwitch.setOnCheckedChangeListener((v, on) -> setAutoMemoryOn(this, on));
+        memCard.addView(memSwitch);
+        root.addView(memCard);
+
+        // ===== KEYS & DATA =====
+        root.addView(sectionHeader("KEYS & DATA"));
+
+        LinearLayout wxCard = settingCard("Weather API key", null);
+        TextView wxStatus = valueLabel(
+                LiveContext.weatherKey(this).isEmpty() ? "(not set)" : "(set \u2713)");
+        wxCard.addView(wxStatus);
+        wxCard.setOnClickListener(v -> showWeatherKeyDialog(wxStatus));
+        root.addView(wxCard);
+
+        LinearLayout keyCard = settingCard("Keys", "tap to open");
+        TextView keyStatus = valueLabel(keyStatusText());
+        keyCard.addView(keyStatus);
+        root.addView(keyCard);
 
         LinearLayout keysBox = new LinearLayout(this);
         keysBox.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable boxBg = new GradientDrawable();
+        boxBg.setColor(CARD);
+        boxBg.setCornerRadius(dp(28));
+        keysBox.setBackground(boxBg);
+        keysBox.setPadding(pad, pad, pad, pad);
+        LinearLayout.LayoutParams boxLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        boxLp.bottomMargin = dp(10);
+        keysBox.setLayoutParams(boxLp);
         keysBox.setVisibility(View.GONE);
         root.addView(keysBox);
-        keyRow.setOnClickListener(v -> {
+        keyCard.setOnClickListener(v -> {
             boolean open = keysBox.getVisibility() != View.VISIBLE;
             keysBox.setVisibility(open ? View.VISIBLE : View.GONE);
             keyStatus.setText(open ? "(tap to close)" : keyStatusText());
         });
 
-        // ---- Gemini Live test (Stage 1: connection test) ----
-        Button liveBtn = darkButton("Live API Test (experimental)");
-        liveBtn.setOnClickListener(v ->
-                startActivity(new Intent(this, LiveTestActivity.class)));
-        root.addView(liveBtn);
-
-        TextView title = darkLabel("API Keys — stored only on your phone\n"
+        TextView title = darkLabel("API Keys \u2014 stored only on your phone\n"
                 + "Make each key from a DIFFERENT Gmail (2 keys from one Gmail = one shared limit)",
-                15);
+                14);
+        title.setTextColor(HINT);
         title.setPadding(0, 0, 0, pad / 2);
         keysBox.addView(title);
 
         for (int i = 1; i <= Keys.MAX_KEYS; i++) {
-            TextView label = darkLabel("Gemini Key " + i + " (AI Studio)", 14);
-            label.setPadding(0, pad / 2, 0, 0);
+            TextView label = darkLabel("Gemini Key " + i + " (AI Studio)", 13);
+            label.setPadding(0, pad / 2, 0, dp(4));
             keysBox.addView(label);
 
             EditText in = darkInput("Paste key " + i + " here (can leave empty)");
@@ -412,8 +445,8 @@ public class SettingsActivity extends Activity {
             keyInputs.add(in);
         }
 
-        TextView groqLabel = darkLabel("Groq API Key (backup brain + speech recognition)", 14);
-        groqLabel.setPadding(0, pad, 0, 0);
+        TextView groqLabel = darkLabel("Groq API Key (backup brain + speech recognition)", 13);
+        groqLabel.setPadding(0, pad / 2, 0, dp(4));
         keysBox.addView(groqLabel);
 
         groqInput = darkInput("Paste Groq key here");
@@ -423,18 +456,12 @@ public class SettingsActivity extends Activity {
         keysBox.addView(groqInput);
 
         Button save = darkButton("Save");
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = pad;
-        save.setLayoutParams(lp);
         keysBox.addView(save);
 
         save.setOnClickListener(v -> {
             List<String> keys = new ArrayList<>();
             for (EditText in : keyInputs) keys.add(in.getText().toString());
             Keys.save(this, keys, groqInput.getText().toString());
-            // Nayi keys = nayi shuruaat — purane 429 wale breakers reset
             ChatClient.resetBreakers();
             GeminiTts.resetBreaker();
             int n = Keys.geminiKeys(this).size();
@@ -443,20 +470,25 @@ public class SettingsActivity extends Activity {
             finish();
         });
 
-        // ---- Backup / Restore: keys ki file tumhare phone me ----
-        TextView backupTitle = darkLabel("\nBackup (useful if the app gets uninstalled)", 14);
-        root.addView(backupTitle);
+        Button liveBtn = darkButton("Live API Test (experimental)");
+        liveBtn.setOnClickListener(v ->
+                startActivity(new Intent(this, LiveTestActivity.class)));
+        root.addView(liveBtn);
 
-        Button backupBtn = darkButton("💾 Backup Keys (to Downloads)");
+        // ===== BACKUP =====
+        root.addView(sectionHeader("BACKUP"));
+
+        Button backupBtn = darkButton("\uD83D\uDCBE Backup Keys (to Downloads)");
         root.addView(backupBtn);
         backupBtn.setOnClickListener(v -> exportKeys());
 
-        Button restoreBtn = darkButton("📥 Restore Keys from Backup");
+        Button restoreBtn = darkButton("\uD83D\uDCE5 Restore Keys from Backup");
         root.addView(restoreBtn);
         restoreBtn.setOnClickListener(v -> importKeys());
 
-        TextView warn = darkLabel("⚠️ The backup file contains your keys — never send it to anyone!", 13);
-        warn.setPadding(0, pad / 2, 0, 0);
+        TextView warn = darkLabel("\u26A0\uFE0F The backup file contains your keys \u2014 never send it to anyone!", 12);
+        warn.setTextColor(HINT);
+        warn.setPadding(0, dp(4), 0, 0);
         root.addView(warn);
     }
 
