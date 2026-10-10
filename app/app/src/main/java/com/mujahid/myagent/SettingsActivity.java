@@ -7,9 +7,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.text.InputType;
 import android.view.View;
 import android.widget.Button;
@@ -135,6 +137,17 @@ public class SettingsActivity extends Activity {
                 .show();
     }
 
+    /** v54 "Orb": Floating Orb on/off — doosri apps ke upar chhota button. */
+    public static boolean isOrbOn(Context ctx) {
+        return ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                .getBoolean("floating_orb", false);
+    }
+
+    private static void setOrbOn(Context ctx, boolean on) {
+        ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                .edit().putBoolean("floating_orb", on).apply();
+    }
+
     /** v53: Voice + Personality — MYRA jaisa picker. */
     public static final String[] VOICE_IDS = {"Sulafat", "Aoede", "Kore", "Puck"};
     public static final String[] VOICE_LABELS =
@@ -151,7 +164,7 @@ public class SettingsActivity extends Activity {
     }
 
     public static final String[] PERSONALITIES =
-            {"Friendly", "Boss Mode", "Funny", "Calm"};
+            {"Friendly", "GF Mode", "Boss Mode", "Funny", "Calm"};
 
     public static int personalityIdx(Context ctx) {
         int i = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
@@ -162,9 +175,11 @@ public class SettingsActivity extends Activity {
     /** System prompt me jodne wali line — Live + Chat dono me lagti hai. */
     public static String personalityPrompt(Context ctx) {
         switch (personalityIdx(ctx)) {
-            case 1: return "Personality style: confident and to-the-point, respectful boss-like tone.";
-            case 2: return "Personality style: light-hearted and playful — keep it fun, never rude.";
-            case 3: return "Personality style: calm and soothing — gentle, unhurried.";
+            case 1: return "Personality style: like a sweet, caring girlfriend — "
+                    + "affectionate, a little playful, warm. Make him smile.";
+            case 2: return "Personality style: confident and to-the-point, respectful boss-like tone.";
+            case 3: return "Personality style: light-hearted and playful — keep it fun, never rude.";
+            case 4: return "Personality style: calm and soothing — gentle, unhurried.";
             default: return "Personality style: warm and friendly, like a caring friend.";
         }
     }
@@ -302,6 +317,40 @@ public class SettingsActivity extends Activity {
         persRow.addView(persValue);
         persRow.setOnClickListener(v -> showPersonalityDialog(persValue));
         root.addView(persRow);
+
+        // ---- v54 "Orb": Floating Orb on/off ----
+        LinearLayout orbRow = new LinearLayout(this);
+        orbRow.setOrientation(LinearLayout.HORIZONTAL);
+        orbRow.setPadding(0, 0, 0, pad / 2);
+        TextView orbLabel = darkLabel("Floating Orb", 15);
+        orbLabel.setLayoutParams(llp);
+        orbRow.addView(orbLabel);
+        Switch orbSwitch = new Switch(this);
+        orbSwitch.setChecked(isOrbOn(this));
+        orbSwitch.setOnCheckedChangeListener((v, on) -> {
+            if (on) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                        && !Settings.canDrawOverlays(this)) {
+                    Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            android.net.Uri.parse("package:" + getPackageName()));
+                    startActivity(i);
+                    orbSwitch.setChecked(false); // wapas off — permission ke baad dobara on karna
+                    Toast.makeText(this,
+                            "Pehle 'Display over other apps' allow karo, phir dobara ON karo.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                setOrbOn(this, true);
+                startService(new Intent(this, OrbService.class));
+                Toast.makeText(this, "Orb ON — dabao to Ayesha khulegi.",
+                        Toast.LENGTH_SHORT).show();
+            } else {
+                setOrbOn(this, false);
+                stopService(new Intent(this, OrbService.class));
+            }
+        });
+        orbRow.addView(orbSwitch);
+        root.addView(orbRow);
 
         // ---- Weather API key (v40 Yaadein): key SIRF is phone me rehti hai ----
         LinearLayout wxRow = new LinearLayout(this);
