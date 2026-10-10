@@ -108,6 +108,7 @@ public class ChatActivity extends Activity {
             try {
                 String memCtx = Memory.buildContext(ChatActivity.this);
                 memCtx += "\n" + SettingsActivity.personalityPrompt(ChatActivity.this); // v53
+                memCtx += "\n" + SettingsActivity.emotionPrompt(ChatActivity.this); // v56
                 if (SettingsActivity.isAutoMemoryOn(ChatActivity.this))
                     memCtx += ChatClient.AUTO_MEMORY_INSTRUCTION;
                 // SELF-DIAGNOSIS (v32): apne baare me puche to EXACT data do, tukka nahi

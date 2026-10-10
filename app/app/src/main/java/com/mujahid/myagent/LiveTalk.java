@@ -512,6 +512,9 @@ public class LiveTalk {
                 systemText += "\n\n" + SettingsActivity.personalityPrompt(ctx); // v53
             } catch (Exception ignored) { }
             try {
+                systemText += "\n\n" + SettingsActivity.emotionPrompt(ctx); // v56
+            } catch (Exception ignored) { }
+            try {
                 String block = LiveContext.buildBlock(ctx);
                 if (!block.isEmpty()) systemText += "\n\n" + block;
             } catch (Exception ignored) { }

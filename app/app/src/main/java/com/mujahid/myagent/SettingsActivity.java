@@ -224,6 +224,29 @@ public class SettingsActivity extends Activity {
                 .edit().putBoolean("floating_orb", on).apply();
     }
 
+    /** v56: Emotion picker — Ayesha kis mood me baat kare. */
+    public static final String[] EMOTIONS =
+            {"Normal", "Happy", "Sad", "Angry", "Romantic", "Emotional", "Excited"};
+
+    public static int emotionIdx(Context ctx) {
+        int i = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                .getInt("emotion_idx", 0);
+        return (i >= 0 && i < EMOTIONS.length) ? i : 0;
+    }
+
+    /** System prompt me jodne wali line — Live + Chat dono me lagti hai. */
+    public static String emotionPrompt(Context ctx) {
+        switch (emotionIdx(ctx)) {
+            case 1: return "Emotional tone: cheerful and upbeat — happy, lively, full of energy.";
+            case 2: return "Emotional tone: sad and gentle — soft, a little heavy-hearted, comforting.";
+            case 3: return "Emotional tone: angry — sharp, short-tempered, fiery words (never abusive).";
+            case 4: return "Emotional tone: romantic — sweet, tender, loving words.";
+            case 5: return "Emotional tone: deeply emotional — heartfelt, expressive, moves the heart.";
+            case 6: return "Emotional tone: excited — enthusiastic, thrilled, high energy.";
+            default: return "Emotional tone: natural and balanced.";
+        }
+    }
+
     /** v53: Voice + Personality — MYRA jaisa picker. */
     public static final String[] VOICE_IDS = {"Sulafat", "Aoede", "Kore", "Puck"};
     public static final String[] VOICE_LABELS =
@@ -284,6 +307,21 @@ public class SettingsActivity extends Activity {
                             getSharedPreferences("app_settings", MODE_PRIVATE)
                                     .edit().putInt("personality_idx", which).apply();
                             valueView.setText(PERSONALITIES[which]);
+                            d.dismiss();
+                        })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    /** v56: Emotion chuno — agli baat se wahi mood. */
+    private void showEmotionDialog(TextView valueView) {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Emotion")
+                .setSingleChoiceItems(EMOTIONS, emotionIdx(this),
+                        (d, which) -> {
+                            getSharedPreferences("app_settings", MODE_PRIVATE)
+                                    .edit().putInt("emotion_idx", which).apply();
+                            valueView.setText(EMOTIONS[which]);
                             d.dismiss();
                         })
                 .setNegativeButton("Cancel", null)
@@ -351,6 +389,12 @@ public class SettingsActivity extends Activity {
         persCard.addView(persValue);
         persCard.setOnClickListener(v -> showPersonalityDialog(persValue));
         root.addView(persCard);
+
+        LinearLayout emoCard = settingCard("Emotion", null);
+        TextView emoValue = valueLabel(EMOTIONS[emotionIdx(this)]);
+        emoCard.addView(emoValue);
+        emoCard.setOnClickListener(v -> showEmotionDialog(emoValue));
+        root.addView(emoCard);
 
         LinearLayout orbCard = settingCard("Floating Orb", "button over other apps");
         Switch orbSwitch = new Switch(this);
