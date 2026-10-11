@@ -165,15 +165,17 @@ public class PhoneTools {
         if (i == null)
             return new Result(true, "Ye app nahi mili: " + appName, null);
         fire(ctx, i);
-        boolean opened = true;
+        // v61: VERIFY — khula ya nahi? Andaza nahi, jhoot nahi.
         if (A11yService.isEnabled()) {
             try { Thread.sleep(1800); } catch (Exception ignored) { }
-            opened = pkg.equals(A11yService.getForegroundPackage());
+            if (pkg.equals(A11yService.getForegroundPackage()))
+                return new Result(true, "Khol diya boss.", i);
+            return new Result(true,
+                    "Khul nahi saka boss — notification me 'Kholo' dabao.", i);
         }
-        if (opened)
-            return new Result(true, "Khol diya boss.", i);
+        // v62: verify nahi ho saka (A11y connected nahi) — jhoot mat bolo.
         return new Result(true,
-                "Khul nahi saka boss — notification me 'Kholo' dabao.", i);
+                "Pata nahi chal saka khula ya nahi boss — screen dekho, na khula ho to notification me 'Kholo' dabao.", i);
     }
 
     /** "... kholo / khol do / kholen / open ..." me se app ka naam nikalo. */
