@@ -250,6 +250,35 @@ public class A11yService extends AccessibilityService {
     // ---------- Type ----------
 
     /** Focused text field me likho (keyboard kholne ki zaroorat nahi). */
+    // ---------- v71: Typing VERIFY — text asal me field me gaya ya nahi ----------
+
+    /** Field ko dobara parr ke check karo ke likha gaya text us me maujood hai. */
+    private static boolean verifyTextPresent(String expected) {
+        A11yService s = instance;
+        if (s == null || expected == null) return false;
+        try { Thread.sleep(200); } catch (InterruptedException ignored) { }
+        try {
+            AccessibilityNodeInfo root = s.getRootInActiveWindow();
+            if (root == null) return false;
+            AccessibilityNodeInfo input = null;
+            try {
+                input = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+            } catch (Exception ignored) { }
+            if (input == null) input = findEditable(root);
+            if (input == null) return false;
+            if (input.isPassword()) return true; // password field ka text parhna mumkin nahi
+            CharSequence cur = input.getText();
+            if (cur == null) return false;
+            String now = cur.toString();
+            // Kuch apps text format kar dete hain — shuru ke 20 harf mila ke dekho
+            String probe = expected.length() > 20
+                    ? expected.substring(0, 20) : expected;
+            return now.contains(probe);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static boolean typeText(String text) {
         A11yService s = instance;
         if (s == null || text == null || text.isEmpty()) return false;
@@ -265,7 +294,12 @@ public class A11yService extends AccessibilityService {
             Bundle b = new Bundle();
             b.putCharSequence(
                     AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text);
-            return input.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, b);
+            if (!input.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, b))
+                return false;
+            // v71: sirf action ka boolean nahi — field parr ke TASDEEQ
+            boolean verified = verifyTextPresent(text);
+            Diag.event(verified ? "type VERIFIED" : "type NOT verified");
+            return verified;
         } catch (Exception e) {
             return false;
         }
@@ -307,9 +341,15 @@ public class A11yService extends AccessibilityService {
             b.putCharSequence(
                     AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
                     text);
-            if (input.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, b))
-                return true;
-            return typeText(text); // fallback: purana tareeqa
+            if (input.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, b)) {
+                // v71: TASDEEQ — field dobara parrha jayega
+                if (verifyTextPresent(text)) {
+                    Diag.event("type VERIFIED");
+                    return true;
+                }
+                Diag.event("type NOT verified — fallback try");
+            }
+            return typeText(text); // fallback: purana tareeqa (wo bhi verify karta hai)
         } catch (Exception e) {
             return false;
         }
