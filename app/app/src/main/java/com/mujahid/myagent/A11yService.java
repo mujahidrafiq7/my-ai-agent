@@ -1,6 +1,9 @@
 package com.mujahid.myagent;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.GestureDescription;
+import android.graphics.Path;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -287,6 +290,53 @@ public class A11yService extends AccessibilityService {
             if (input.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, b))
                 return true;
             return typeText(text); // fallback: purana tareeqa
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ---------- v66: GESTURES (ScreenControl merge, Step 1) ----------
+    // dispatchGesture: asli insaan wala tap/swipe — node scroll ki jagah.
+
+    /** Screen ke kisi bhi point (X, Y) par tap karo. */
+    public static boolean tapAtCoordinates(float x, float y) {
+        A11yService s = instance;
+        if (s == null) return false;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false;
+        try {
+            Path p = new Path();
+            p.moveTo(x, y);
+            GestureDescription.StrokeDescription stroke =
+                    new GestureDescription.StrokeDescription(p, 0, 80);
+            GestureDescription.Builder b = new GestureDescription.Builder();
+            b.addStroke(stroke);
+            return s.dispatchGesture(b.build(), null, null);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Asli swipe. down=true → neeche ka content dekho (ungli upar ki taraf),
+     * down=false → upar wapas (ungli neeche ki taraf).
+     */
+    public static boolean gestureSwipe(boolean down) {
+        A11yService s = instance;
+        if (s == null) return false;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false;
+        try {
+            android.util.DisplayMetrics m = s.getResources().getDisplayMetrics();
+            float cx = m.widthPixels / 2f;
+            float y1 = down ? m.heightPixels * 0.7f : m.heightPixels * 0.3f;
+            float y2 = down ? m.heightPixels * 0.3f : m.heightPixels * 0.7f;
+            Path p = new Path();
+            p.moveTo(cx, y1);
+            p.lineTo(cx, y2);
+            GestureDescription.StrokeDescription stroke =
+                    new GestureDescription.StrokeDescription(p, 0, 300);
+            GestureDescription.Builder b = new GestureDescription.Builder();
+            b.addStroke(stroke);
+            return s.dispatchGesture(b.build(), null, null);
         } catch (Exception e) {
             return false;
         }

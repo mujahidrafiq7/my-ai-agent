@@ -57,14 +57,19 @@ public class UiControl {
                     A11yService.goBack() ? "Wapas aa gaya." : "Wapas na ja saka.");
         }
 
-        // Scroll
+        // Scroll — v66: pehle ASLI gesture swipe, na ho to purana node scroll
         if (t.contains("scroll")) {
             boolean up = t.contains("upar") || t.contains("uper") || t.contains("oopar");
             int times = 1;
             if (t.contains("tez") || t.contains("fast") || t.contains("zyada")
                     || t.contains("ziyada")) times = 4;
             else if (t.contains("thoda") || t.contains("thora") || t.contains("halka")) times = 1;
-            boolean ok = A11yService.scroll(up, times);
+            boolean ok = false;
+            for (int i = 0; i < times; i++) {
+                if (A11yService.gestureSwipe(!up)) { ok = true; }
+                try { Thread.sleep(350); } catch (InterruptedException ignored) { }
+            }
+            if (!ok) ok = A11yService.scroll(up, times);
             return new Result(true, ok ? "Scroll kar diya."
                     : "Scroll na ho saka — screen pe koi scroll wali jagah nahi mili.");
         }
