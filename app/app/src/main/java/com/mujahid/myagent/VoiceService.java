@@ -278,6 +278,7 @@ public class VoiceService extends Service {
         liveTalk.start(this, new LiveTalk.Listener() {
             @Override public void onReady() {
                 emitStatus("live");
+                startStreamPump(); // v70: streaming engine
             }
             @Override public void onStatus(String s) {
                 emitStatus("live: " + s);
@@ -292,6 +293,7 @@ public class VoiceService extends Service {
                 // Live fail → purane raste pe wapas, guftagu jaari
                 Diag.event("live fallback: " + why);
                 toast("Live: " + why + " — purana rasta.");
+                stopStreamPump(); // v70
                 liveTalk = null;
                 if (conversationOn) startRecordingWithVad();
             }
@@ -331,25 +333,8 @@ public class VoiceService extends Service {
      * 3) strict grounding (andaza nahi), 4) foreground app context injection.
      */
     private String smartVisionPrompt() {
-        StringBuilder p = new StringBuilder("Ye phone ka screenshot hai. ");
-        String ctx = foregroundAppContext();
-        if (!ctx.isEmpty()) p.append(ctx);
-        p.append("VISION RULES (sakhti se follow karo):\n")
-         .append("1. PEHLE TEXT PARHO: screen pe jo text, headings aur action-bar titles "
-                 + "nazar aa rahe hain unhe ghaur se parho — app ka naam wahin se confirm karo "
-                 + "(jaise 'WhatsApp', 'YouTube', 'Settings').\n")
-         .append("2. APP SIGNATURES:\n")
-         .append("- WhatsApp: green theme, upar search bar, chat list (naam + time + gol DP), "
-                 + "neeche gol green message button.\n")
-         .append("- Home Screen: app icons ka grid, neeche dock, wallpaper.\n")
-         .append("- Settings: upar search bar, list me options aur toggle switches.\n")
-         .append("- YouTube: video thumbnails ki list, neeche Home/Shorts buttons.\n")
-         .append("3. NO GUESSING: jis text ya naam pe poora yaqeen na ho, uska andaza mat lagao "
-                 + "aur jhoote chat naam mat banao. Sirf wahi batao jo screen pe waqai "
-                 + "likha ya dikh raha hai. Saaf na ho to keh do 'saaf nazar nahi aa raha'.\n")
-         .append("Jawab: pehle EXACT app ka naam, phir 1-2 jumlon me screen pe kya ho raha hai. "
-                 + "Roman Urdu me jawab do.");
-        return p.toString();
+        // v63: prompt ab Prompts.java me — ek wahid, saaf nizam.
+        return Prompts.vision(foregroundAppContext());
     }
 
     /** v46: context injection — is waqt kaunsi app khuli hai (A11yService se). */
@@ -398,6 +383,55 @@ public class VoiceService extends Service {
      * Live turn mukammal: us ne kya kaha (transcript) — memory/command check.
      * Guftagu ka jawab Live model ne khud de diya hai; yahan sirf phone ke kaam.
      */
+    // ---------- v70: Live Streaming pump ----------
+    private Thread streamThread;
+    private volatile boolean streaming = false;
+
+    /** Share ON ho to har ~1 second taaza frame Live session ko — live feed. */
+    private void startStreamPump() {
+        if (streaming) return;
+        streaming = true;
+        streamThread = new Thread(() -> {
+            int fails = 0;
+            boolean announced = false;
+            while (streaming && conversationOn && liveTalk != null) {
+                try {
+                    if (ScreenShare.isOn()) {
+                        String b64 = AyeshaController.getScreenImageBase64();
+                        LiveTalk lt = liveTalk;
+                        if (b64 != null && lt != null && lt.sendVideoFrame(b64)) {
+                            fails = 0;
+                            if (!announced) {
+                                announced = true;
+                                Diag.event("streaming ON (frames ja rahe hain)");
+                            }
+                        } else if (b64 != null) {
+                            if (++fails >= 5) {
+                                Diag.event("streaming BAND — frames reject hue");
+                                break;
+                            }
+                        }
+                    }
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+                    break;
+                } catch (Exception e) {
+                    try { Thread.sleep(1000); } catch (Exception ignored) { }
+                }
+            }
+            streaming = false;
+        });
+        streamThread.start();
+    }
+
+    private void stopStreamPump() {
+        streaming = false;
+        if (streamThread != null) {
+            try { streamThread.interrupt(); } catch (Exception ignored) { }
+            streamThread = null;
+        }
+    }
+
     private void handleLiveTurn(String text) {        if (text == null || text.trim().isEmpty() || !conversationOn) return;
         final String said = text.trim();
         toast("Suna: " + RomanUrdu.toRoman(said)); // hamesha Roman Urdu me dikhao
@@ -474,7 +508,18 @@ public class VoiceService extends Service {
             if (!ScreenShare.isOn()) {
                 if (liveTalk != null) liveTalk.sayText("Boss, screen share abhi OFF hai — "
                         + "pehle front page pe Screen Share ON karo, phir main dekh sakungi!");
+            } else if (streaming && liveTalk != null) {
+                // v70: LIVE FEED chal raha hai — purana screenshot wala rasta khatam.
+                // Model khud feed dekh ke jawab degi; ek taaza frame foran bhej do.
+                final LiveTalk lt = liveTalk;
+                new Thread(() -> {
+                    try {
+                        String b64 = AyeshaController.getScreenImageBase64();
+                        if (b64 != null) lt.sendVideoFrame(b64);
+                    } catch (Exception ignored) { }
+                }).start();
             } else if (liveTalk != null) {
+                // Streaming band ho to purana rasta (backup)
                 final LiveTalk lt = liveTalk;
                 new Thread(() -> {
                     String seen = describeScreen();
@@ -532,6 +577,7 @@ public class VoiceService extends Service {
 
     private void stopConversation() {
         conversationOn = false;
+        stopStreamPump(); // v70
         hideEdgeLight();
         Diag.setErrorListener(null); // v41: guftagu khatam — khamosh
         if (liveTalk != null) { // v38: Live session band karo
