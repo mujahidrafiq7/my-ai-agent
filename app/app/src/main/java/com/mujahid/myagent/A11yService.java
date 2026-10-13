@@ -193,6 +193,24 @@ public class A11yService extends AccessibilityService {
         }
     }
 
+    // ---------- App kholna (ScreenControl merge) ----------
+
+    /** Package name se app seedha launch karo. */
+    public static boolean openApp(String packageName) {
+        A11yService s = instance;
+        if (s == null || packageName == null) return false;
+        try {
+            android.content.Intent intent = s.getPackageManager()
+                    .getLaunchIntentForPackage(packageName);
+            if (intent == null) return false;
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            s.startActivity(intent);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     // ---------- Scroll ----------
 
     /** up=true → upar, warna neeche. times = kitni dafa. */

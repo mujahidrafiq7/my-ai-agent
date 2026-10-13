@@ -86,6 +86,25 @@ public class UiControl {
                     : "Type na ho saka — pehle likhne ki jagah pe ek tap karo, phir bolo.");
         }
 
+        // v69: Coordinate tap (controller ke zariye) — "beech me tap karo" waghera
+        if (t.contains("tap") && (t.contains("beech") || t.contains("center")
+                || t.contains("upar") || t.contains("neeche") || t.contains("neechay")
+                || t.contains("dahine") || t.contains("bayein")
+                || t.contains("right") || t.contains("left"))) {
+            android.util.DisplayMetrics dm = ctx.getResources().getDisplayMetrics();
+            float fx = 0.5f, fy = 0.5f;
+            if (t.contains("upar")) fy = 0.25f;
+            if (t.contains("neeche") || t.contains("neechay")) fy = 0.75f;
+            if (t.contains("dahine") || t.contains("right")) fx = 0.8f;
+            if (t.contains("bayein") || t.contains("left")) fx = 0.2f;
+            int x = Math.round(dm.widthPixels * fx);
+            int y = Math.round(dm.heightPixels * fy);
+            boolean ok = AyeshaController.executeAction(
+                    "tap_coordinates", null, x, y);
+            return new Result(true, ok ? "Tap kar diya."
+                    : "Tap na ho saka boss.");
+        }
+
         // X dabao / X pe tap karo
         String target = extractTap(t);
         if (target != null && !target.isEmpty()) {
