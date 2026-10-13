@@ -5,6 +5,8 @@ import android.accessibilityservice.GestureDescription;
 import android.graphics.Path;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
@@ -295,13 +297,52 @@ public class A11yService extends AccessibilityService {
         }
     }
 
-    // ---------- v66: GESTURES (ScreenControl merge, Step 1) ----------
-    // dispatchGesture: asli insaan wala tap/swipe — node scroll ki jagah.
+    // ---------- v67: GESTURES — asal natija check karke ----------
+    // v66 ka masla: dispatchGesture(..., null, null) — boolean sirf "request gayi"
+    // batata tha, "ungli chali" nahi. Gesture cancel bhi ho jaye to pata nahi chalta tha.
+    // Ab: MAIN thread se dispatch + GestureResultCallback ka intezar — sach hi return hoga.
+
+    /** Gesture MAIN thread se bhejo, aur completed/cancelled ka asal faisla lo. */
+    private static boolean dispatchAndWait(final GestureDescription g) {
+        final A11yService s = instance;
+        if (s == null) return false;
+        final java.util.concurrent.CountDownLatch latch =
+                new java.util.concurrent.CountDownLatch(1);
+        final boolean[] completed = {false};
+        final boolean[] accepted = {false};
+        Runnable r = () -> {
+            try {
+                accepted[0] = s.dispatchGesture(g, new GestureResultCallback() {
+                    @Override public void onCompleted(GestureDescription gd) {
+                        completed[0] = true;
+                        Diag.event("gesture COMPLETED");
+                        latch.countDown();
+                    }
+                    @Override public void onCancelled(GestureDescription gd) {
+                        Diag.event("gesture CANCELLED");
+                        latch.countDown();
+                    }
+                }, null);
+                if (!accepted[0]) latch.countDown();
+            } catch (Exception e) {
+                latch.countDown();
+            }
+        };
+        boolean onMain = Looper.myLooper() == Looper.getMainLooper();
+        if (onMain) {
+            r.run(); // main thread pe hain — await karna deadlock hoga
+            return accepted[0];
+        }
+        new Handler(Looper.getMainLooper()).post(r);
+        try {
+            latch.await(1500, java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (InterruptedException ignored) { }
+        return completed[0];
+    }
 
     /** Screen ke kisi bhi point (X, Y) par tap karo. */
     public static boolean tapAtCoordinates(float x, float y) {
-        A11yService s = instance;
-        if (s == null) return false;
+        if (instance == null) return false;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false;
         try {
             Path p = new Path();
@@ -310,7 +351,7 @@ public class A11yService extends AccessibilityService {
                     new GestureDescription.StrokeDescription(p, 0, 80);
             GestureDescription.Builder b = new GestureDescription.Builder();
             b.addStroke(stroke);
-            return s.dispatchGesture(b.build(), null, null);
+            return dispatchAndWait(b.build());
         } catch (Exception e) {
             return false;
         }
@@ -336,7 +377,7 @@ public class A11yService extends AccessibilityService {
                     new GestureDescription.StrokeDescription(p, 0, 300);
             GestureDescription.Builder b = new GestureDescription.Builder();
             b.addStroke(stroke);
-            return s.dispatchGesture(b.build(), null, null);
+            return dispatchAndWait(b.build());
         } catch (Exception e) {
             return false;
         }
