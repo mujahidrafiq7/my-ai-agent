@@ -43,21 +43,23 @@ public class UiControl {
             return new Result(false, "");
         }
 
-        // Home / Back ("aao" aur "page" bhi — "home page pe aao" pakde)
+        // Home / Back (v72: controller ke ek darwaze se)
         if (t.contains("home") && (t.contains("jao") || t.contains("jau")
                 || t.contains("aao") || t.contains("chalo")
                 || t.contains("screen") || t.contains("page"))) {
             return new Result(true,
-                    A11yService.goHome() ? "Home pe aa gaya." : "Home na khul saka.");
+                    AyeshaController.executeAction("home", null, 0, 0)
+                            ? "Home pe aa gaya." : "Home na khul saka.");
         }
         if ((t.contains("wapas") || t.equals("back") || t.contains(" back "))
                 && (t.contains("jao") || t.contains("jau")
                 || t.contains("aao") || t.contains("chalo"))) {
             return new Result(true,
-                    A11yService.goBack() ? "Wapas aa gaya." : "Wapas na ja saka.");
+                    AyeshaController.executeAction("back", null, 0, 0)
+                            ? "Wapas aa gaya." : "Wapas na ja saka.");
         }
 
-        // Scroll — v66: pehle ASLI gesture swipe, na ho to purana node scroll
+        // Scroll — v72: controller se (andar gesture pehle, node fallback khud)
         if (t.contains("scroll")) {
             boolean up = t.contains("upar") || t.contains("uper") || t.contains("oopar");
             int times = 1;
@@ -66,10 +68,10 @@ public class UiControl {
             else if (t.contains("thoda") || t.contains("thora") || t.contains("halka")) times = 1;
             boolean ok = false;
             for (int i = 0; i < times; i++) {
-                if (A11yService.gestureSwipe(!up)) { ok = true; }
+                if (AyeshaController.executeAction(
+                        up ? "scroll_up" : "scroll_down", null, 0, 0)) ok = true;
                 try { Thread.sleep(350); } catch (InterruptedException ignored) { }
             }
-            if (!ok) ok = A11yService.scroll(up, times);
             return new Result(true, ok ? "Scroll kar diya."
                     : "Scroll na ho saka — screen pe koi scroll wali jagah nahi mili.");
         }
@@ -81,7 +83,8 @@ public class UiControl {
             if (q.endsWith(" ko")) q = q.substring(0, q.length() - 3).trim();
             if (q.isEmpty())
                 return new Result(true, "Kya type karun boss?");
-            boolean ok = A11yService.focusAndType(q); // v65: focus karke — pakka
+            boolean ok = AyeshaController.executeAction(
+                    "type_text", q, 0, 0); // v72: controller se
             return new Result(true, ok ? "Type kar diya."
                     : "Type na ho saka — pehle likhne ki jagah pe ek tap karo, phir bolo.");
         }
@@ -105,11 +108,11 @@ public class UiControl {
                     : "Tap na ho saka boss.");
         }
 
-        // X dabao / X pe tap karo
+        // X dabao / X pe tap karo (v72: controller se — andar performClickOnNode)
         String target = extractTap(t);
         if (target != null && !target.isEmpty()) {
-            boolean ok = A11yService.tapText(target);
-            if (!ok) ok = A11yService.tapByDesc(target); // v65: icon button (bina text)
+            boolean ok = AyeshaController.executeAction(
+                    "tap_text", target, 0, 0);
             return new Result(true, ok ? "Daba diya."
                     : "'" + target + "' screen pe nahi mila.");
         }

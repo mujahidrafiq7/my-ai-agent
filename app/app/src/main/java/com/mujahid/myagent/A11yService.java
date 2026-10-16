@@ -2,6 +2,7 @@ package com.mujahid.myagent;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
+import android.content.Intent;
 import android.graphics.Path;
 import android.os.Build;
 import android.os.Bundle;
@@ -19,11 +20,17 @@ import java.util.List;
  */
 public class A11yService extends AccessibilityService {
 
-    private static A11yService instance;
+    // v72: volatile — voice/controller threads ko hamesha taaza instance dikhe
+    private static volatile A11yService instance;
 
     /** Service zinda aur enabled hai? */
     public static boolean isEnabled() {
         return instance != null;
+    }
+
+    /** Bandha hua service instance (controller ke liye). Null = service OFF/unbound. */
+    public static A11yService getInstance() {
+        return instance;
     }
 
     // v46: foreground app tracking (screen share context injection)
@@ -115,14 +122,7 @@ public class A11yService extends AccessibilityService {
                     new java.util.ArrayList<>();
             collectByDesc(root, needle, found);
             for (AccessibilityNodeInfo n : found) {
-                AccessibilityNodeInfo c = n;
-                while (c != null && !c.isClickable()) c = c.getParent();
-                if (c != null) {
-                    try {
-                        if (c.performAction(AccessibilityNodeInfo.ACTION_CLICK))
-                            return true;
-                    } catch (Exception ignored) { }
-                }
+                if (performClickOnNode(n)) return true;
             }
             return false;
         } catch (Exception e) {
@@ -146,9 +146,25 @@ public class A11yService extends AccessibilityService {
         } catch (Exception ignored) { }
     }
 
+    // ---------- Node click (targeted) ----------
+
+    /** Kisi node (ya uske sab se qareebi clickable parent) par ACTION_CLICK chalao. */
+    public static boolean performClickOnNode(AccessibilityNodeInfo node) {
+        if (node == null) return false;
+        try {
+            AccessibilityNodeInfo c = node;
+            while (c != null && !c.isClickable()) c = c.getParent();
+            return c != null
+                    && c.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @Override
     protected void onServiceConnected() {
         instance = this;
+        Diag.event("a11y instance BOUND");
     }
 
     @Override
@@ -167,9 +183,18 @@ public class A11yService extends AccessibilityService {
     @Override
     public void onInterrupt() { }
 
+    // v72: unbind pe instance foran saaf — latka hua purana instance khatam
+    @Override
+    public boolean onUnbind(Intent intent) {
+        if (instance == this) instance = null;
+        Diag.event("a11y instance UNBOUND");
+        return super.onUnbind(intent);
+    }
+
     @Override
     public void onDestroy() {
         if (instance == this) instance = null;
+        Diag.event("a11y instance DESTROYED");
         super.onDestroy();
     }
 
@@ -398,6 +423,11 @@ public class A11yService extends AccessibilityService {
         return completed[0];
     }
 
+    /** tap(int, int) — controller/tool calls ke liye exact API. */
+    public static boolean tap(int x, int y) {
+        return tapAtCoordinates(x, y);
+    }
+
     /** Screen ke kisi bhi point (X, Y) par tap karo. */
     public static boolean tapAtCoordinates(float x, float y) {
         if (instance == null) return false;
@@ -453,10 +483,7 @@ public class A11yService extends AccessibilityService {
             List<AccessibilityNodeInfo> nodes =
                     root.findAccessibilityNodeInfosByText(text);
             for (AccessibilityNodeInfo n : nodes) {
-                AccessibilityNodeInfo c = n;
-                while (c != null && !c.isClickable()) c = c.getParent();
-                if (c != null && c.performAction(AccessibilityNodeInfo.ACTION_CLICK))
-                    return true;
+                if (performClickOnNode(n)) return true;
             }
             return false;
         } catch (Exception e) {

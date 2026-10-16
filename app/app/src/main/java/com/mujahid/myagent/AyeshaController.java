@@ -47,7 +47,7 @@ public class AyeshaController {
             case "open_app":
                 return target != null && A11yService.openApp(target);
             case "tap_coordinates":
-                return A11yService.tapAtCoordinates(x, y);
+                return A11yService.tap(x, y); // v72: exact tap(int,int) API
             case "tap_text":
                 if (target == null) return false;
                 boolean ok = A11yService.tapText(target);
