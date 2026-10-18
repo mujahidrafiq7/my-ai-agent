@@ -113,6 +113,7 @@ public class VoiceService extends Service {
     @Override
     public void onDestroy() {
         conversationOn = false;
+        try { liveCmdExec.shutdownNow(); } catch (Exception ignored) { } // v73
         hideEdgeLight();
         TtsClient.stop(); // mic band = poori khamoshi, kuch na bole
         stopRecorderQuiet();
@@ -287,7 +288,15 @@ public class VoiceService extends Service {
                 // live "suna" — toast spam se bachne ke liye khamosh
             }
             @Override public void onUserTurn(String text) {
-                handleLiveTurn(text);
+                // v73: command ko WS reader thread se HATA ke apne worker pe bhejo.
+                // Reader thread atke to uski AWAZ ke packets ruk jate the —
+                // "WhatsApp kholo / tap karo" pe poori khamoshi isi liye thi.
+                final String t = text;
+                try {
+                    liveCmdExec.execute(() -> handleLiveTurn(t));
+                } catch (Exception e) {
+                    handleLiveTurn(t);
+                }
             }
             @Override public void onError(String why) {
                 // Live fail → purane raste pe wapas, guftagu jaari
@@ -386,6 +395,9 @@ public class VoiceService extends Service {
     // ---------- v70: Live Streaming pump ----------
     private Thread streamThread;
     private volatile boolean streaming = false;
+    // v73: live commands ke liye apna worker — ek ek karke, tarteeb se
+    private final java.util.concurrent.ExecutorService liveCmdExec =
+            java.util.concurrent.Executors.newSingleThreadExecutor();
 
     /** Share ON ho to har ~1 second taaza frame Live session ko — live feed. */
     private void startStreamPump() {
