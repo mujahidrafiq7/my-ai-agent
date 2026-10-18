@@ -428,6 +428,23 @@ public class A11yService extends AccessibilityService {
         return tapAtCoordinates(x, y);
     }
 
+    /** v73: Kisi point pe daba ke rakho (long-press) — 700ms ka stroke. */
+    public static boolean longPressAtCoordinates(float x, float y) {
+        if (instance == null) return false;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false;
+        try {
+            Path p = new Path();
+            p.moveTo(x, y);
+            GestureDescription.StrokeDescription stroke =
+                    new GestureDescription.StrokeDescription(p, 0, 700);
+            GestureDescription.Builder b = new GestureDescription.Builder();
+            b.addStroke(stroke);
+            return dispatchAndWait(b.build());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /** Screen ke kisi bhi point (X, Y) par tap karo. */
     public static boolean tapAtCoordinates(float x, float y) {
         if (instance == null) return false;

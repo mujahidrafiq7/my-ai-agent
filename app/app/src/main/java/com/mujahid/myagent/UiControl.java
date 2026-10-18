@@ -89,6 +89,24 @@ public class UiControl {
                     : "Type na ho saka — pehle likhne ki jagah pe ek tap karo, phir bolo.");
         }
 
+        // v73: Hold / long-press (controller se) — "beech me hold karo" waghera
+        if (t.contains("hold") || t.contains("long press")
+                || t.contains("daba ke rakho") || t.contains("dabaye rakho")
+                || t.contains("daba kar rakho")) {
+            android.util.DisplayMetrics dm = ctx.getResources().getDisplayMetrics();
+            float fx = 0.5f, fy = 0.5f;
+            if (t.contains("upar")) fy = 0.25f;
+            if (t.contains("neeche") || t.contains("neechay")) fy = 0.75f;
+            if (t.contains("dahine") || t.contains("right")) fx = 0.8f;
+            if (t.contains("bayein") || t.contains("left")) fx = 0.2f;
+            int x = Math.round(dm.widthPixels * fx);
+            int y = Math.round(dm.heightPixels * fy);
+            boolean ok = AyeshaController.executeAction(
+                    "long_press", null, x, y);
+            return new Result(true, ok ? "Hold kar diya."
+                    : "Hold na ho saka boss.");
+        }
+
         // v69: Coordinate tap (controller ke zariye) — "beech me tap karo" waghera
         if (t.contains("tap") && (t.contains("beech") || t.contains("center")
                 || t.contains("upar") || t.contains("neeche") || t.contains("neechay")
@@ -123,7 +141,7 @@ public class UiControl {
     private static boolean looksLikeUiCommand(String t) {
         return t.contains("scroll")
                 || (t.contains("type") && t.contains("karo"))
-                || t.contains("dabao") || t.contains("tap karo")
+                || t.contains("dabao") || t.contains("tap karo") || t.contains("hold")
                 || (t.contains("home") && t.contains("jao"))
                 || (t.contains("wapas") && t.contains("jao"));
     }
