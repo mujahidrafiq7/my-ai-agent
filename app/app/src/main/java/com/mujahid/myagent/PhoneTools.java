@@ -159,23 +159,39 @@ public class PhoneTools {
 
     /** v61: app kholo + VERIFY — khula to "khol diya", nahi khula to sach.
      *  Pehle bina dekhe "Khol diya boss" kehta tha = theater. Ab A11yService
-     *  (jo ON hai) se saamne wali app check karo. */
+     *  (jo ON hai) se saamne wali app check karo.
+     *  v74: ORDER ULTA — pehle SEEDHA launch (Accessibility service se),
+     *  phir purana rasta; notification wala tareeqa AAKHRI backup.
+     *  (Pehle background halat me sirf notification jati thi — screen ON
+     *  phone pe wo app kholti hi nahi, banner ban ke reh jati thi.) */
     private static Result openVerified(Context ctx, String pkg, String appName) {
         Intent i = launchIntent(ctx, pkg);
         if (i == null)
             return new Result(true, "Ye app nahi mili: " + appName, null);
+        boolean a11y = A11yService.isEnabled();
+
+        // Qadam 1: SEEDHA launch — Accessibility service ke zariye
+        A11yService.openApp(pkg);
+        if (a11y && waitForeground(pkg, 1000))
+            return new Result(true, "Khol diya boss.", i);
+
+        // Qadam 2: purana rasta (app saamne ho to direct, warna notification)
         fire(ctx, i);
-        // v61: VERIFY — khula ya nahi? Andaza nahi, jhoot nahi.
-        if (A11yService.isEnabled()) {
-            try { Thread.sleep(1800); } catch (Exception ignored) { }
-            if (pkg.equals(A11yService.getForegroundPackage()))
+        if (a11y) {
+            if (waitForeground(pkg, 1500))
                 return new Result(true, "Khol diya boss.", i);
             return new Result(true,
                     "Khul nahi saka boss — notification me 'Kholo' dabao.", i);
         }
-        // v62: verify nahi ho saka (A11y connected nahi) — jhoot mat bolo.
+        // Verify mumkin nahi (A11y connected nahi) — jhoot mat bolo.
         return new Result(true,
-                "Pata nahi chal saka khula ya nahi boss — screen dekho, na khula ho to notification me 'Kholo' dabao.", i);
+                "Khula ya nahi, pakka nahi boss — notification me 'Kholo' dabao.", i);
+    }
+
+    /** Itna ruko, phir dekho matluba app saamne ayi ya nahi. */
+    private static boolean waitForeground(String pkg, long ms) {
+        try { Thread.sleep(ms); } catch (Exception ignored) { }
+        return pkg.equals(A11yService.getForegroundPackage());
     }
 
     /** "... kholo / khol do / kholen / open ..." me se app ka naam nikalo. */
