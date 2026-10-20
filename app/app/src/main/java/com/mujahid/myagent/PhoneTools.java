@@ -88,17 +88,36 @@ public class PhoneTools {
         return t;
     }
 
+    private static final String YT_PKG = "com.google.android.youtube";
+
     public static Result tryHandle(Context ctx, String text) {
         String t = norm(text); // norm = Urdu script + English verbs + fuzzy names (sab)
 
-        // 1) YouTube search
+        // 1) YouTube search — v75: verify ke sath (khula to sach, na khula to sach)
         if (t.contains("youtube") && t.contains("search")) {
             String q = cleanQuery(t, new String[]{"youtube", "pe", "par", "me", "mein",
                     "search", "karo", "kar", "do", "please", "ko", "ka", "ki"});
             if (q.isEmpty()) return new Result(false, "", null);
-            Intent i = youtubeSearchIntent(q);
-            fire(ctx, i);
-            return new Result(true, "YouTube pe dhoond liya: " + q, i);
+            return openYouTubeSearch(ctx, q, false);
+        }
+
+        // 1b) v75: PLAY — "ertugrul drama lagao" / "koi gana sunao" /
+        // "youtube pe X play karo" → search kholo + pehli video pe tap
+        boolean playVerb = t.contains("lagao") || t.contains("laga do")
+                || t.contains("sunao") || t.contains("bajao")
+                || t.contains("chalao") || t.contains("play karo")
+                || t.contains("play kar do");
+        boolean mediaWord = t.contains("youtube") || t.contains("drama")
+                || t.contains("gana") || t.contains("gaana") || t.contains("song")
+                || t.contains("video") || t.contains("naat") || t.contains("movie")
+                || t.contains("film") || t.contains("tilawat");
+        if (playVerb && mediaWord) {
+            String q = cleanQuery(t, new String[]{"youtube", "pe", "par", "me", "mein",
+                    "mujhe", "zara", "koi", "lagao", "laga", "sunao", "bajao",
+                    "chalao", "chala", "play", "karo", "kar", "do", "please",
+                    "search", "ko", "ka", "ki"});
+            if (!q.isEmpty())
+                return openYouTubeSearch(ctx, q, true);
         }
 
         // 2) Web search (Chrome/Google)
@@ -180,6 +199,11 @@ public class PhoneTools {
         if (a11y) {
             if (waitForeground(pkg, 1500))
                 return new Result(true, "Khol diya boss.", i);
+            // v75: asal rukawat ka naam lo — ijazat OFF ho to wahi batao
+            if (!ForegroundOpen.overlayGranted(ctx))
+                return new Result(true,
+                        "Khul nahi saka boss — apps kholne ki ijazat OFF hai. "
+                        + "Ayesha app kholo, wahan 'Apps Kholne Ki Ijazat' wala button ON kar do.", i);
             return new Result(true,
                     "Khul nahi saka boss — notification me 'Kholo' dabao.", i);
         }
@@ -192,6 +216,36 @@ public class PhoneTools {
     private static boolean waitForeground(String pkg, long ms) {
         try { Thread.sleep(ms); } catch (Exception ignored) { }
         return pkg.equals(A11yService.getForegroundPackage());
+    }
+
+    /** v75: YouTube search kholo — VERIFY ke sath. play=true ho to
+     *  results ke baad pehli video pe tap bhi (gesture completion check). */
+    private static Result openYouTubeSearch(Context ctx, String q, boolean play) {
+        Intent yt = youtubeSearchIntent(q);
+        yt.setPackage(YT_PKG);
+        ForegroundOpen.open(ctx, yt, "YouTube");
+        if (!A11yService.isEnabled())
+            return new Result(true, "YouTube search bhej diya boss: " + q, yt);
+        if (!waitForeground(YT_PKG, 2200)) {
+            if (!ForegroundOpen.overlayGranted(ctx))
+                return new Result(true,
+                        "YouTube saamne nahi aya boss — apps kholne ki ijazat OFF hai, "
+                        + "Ayesha app me wo button ON kar do.", yt);
+            return new Result(true,
+                    "YouTube khul nahi saka boss — notification me 'Kholo' dabao.", yt);
+        }
+        if (!play)
+            return new Result(true,
+                    "YouTube pe '" + q + "' ke results saamne hain boss.", yt);
+        // Results load hone do, phir pehli video (upar wali card) pe tap
+        try { Thread.sleep(2000); } catch (Exception ignored) { }
+        android.util.DisplayMetrics dm = ctx.getResources().getDisplayMetrics();
+        boolean tapped = A11yService.tapAtCoordinates(
+                dm.widthPixels / 2, (int) (dm.heightPixels * 0.32f));
+        if (tapped)
+            return new Result(true, "Pehli video laga di boss — '" + q + "'.", yt);
+        return new Result(true,
+                "Results saamne hain boss — pehli video pe tap nahi ho saka, khud chala lo.", yt);
     }
 
     /** "... kholo / khol do / kholen / open ..." me se app ka naam nikalo. */

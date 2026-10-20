@@ -185,6 +185,13 @@ public class WhatsAppAction {
             return new Result(true, cap(name)
                     + " contacts me nahi mila boss — naam ya number check karo.");
         ForegroundOpen.open(ctx, waChat(num), cap(name) + " ki chat");
+        // v75: VERIFY — chat asal me saamne ayi ya nahi, jhoot nahi
+        if (A11yService.isEnabled()) {
+            sleep(1600);
+            if (!"com.whatsapp".equals(A11yService.getForegroundPackage()))
+                return new Result(true, cap(name)
+                        + " ki chat saamne nahi ayi boss — apps kholne ki ijazat ON karo, ya notification wala 'Kholo' dabao.");
+        }
         return new Result(true, cap(name) + " ki chat khol di.");
     }
 

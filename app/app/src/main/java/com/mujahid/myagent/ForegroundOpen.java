@@ -23,9 +23,22 @@ public class ForegroundOpen {
     private static final String CH_OPEN = "ayesha_open";
     private static final int OPEN_NOTIFY_ID = 9001;
 
+    /** v75: "Display over other apps" ijazat mili hai ya nahi.
+     *  Android ka rule: ye ijazat ho to background se bhi app seedha
+     *  khul sakta hai (BAL exemption) — na ho to startActivity khamoshi
+     *  se ruk jata hai aur sirf notification bachta hai. */
+    public static boolean overlayGranted(Context ctx) {
+        try {
+            return android.provider.Settings.canDrawOverlays(ctx);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static void open(Context ctx, Intent intent, String label) {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        if (isForeground(ctx)) {
+        // v75: hamari app saamne ho YA overlay ijazat ho → SEEDHA launch.
+        if (isForeground(ctx) || overlayGranted(ctx)) {
             try {
                 ctx.startActivity(intent);
                 return;
