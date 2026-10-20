@@ -41,6 +41,17 @@ public class LiveTalk {
         void onError(String why);
     }
 
+    /** v76: Model ke TOOLS — wo KHUD call karegi, natija seedha USI ko milega.
+     *  Handler execution apne worker pe kare (ye callback WS reader thread
+     *  pe ata hai — yahan rukna mana hai). */
+    public interface ToolHandler {
+        void onToolCall(String id, String name, org.json.JSONObject args);
+    }
+
+    private volatile ToolHandler toolHandler;
+
+    public void setToolHandler(ToolHandler h) { toolHandler = h; }
+
     private volatile boolean running = false;
     private volatile LiveWs ws;
     private volatile boolean sessionBroken = false;
@@ -314,6 +325,30 @@ public class LiveTalk {
                 }
                 return;
             }
+            if (o.has("toolCall")) {
+                // v76: Model ne KHUD tool call kiya — handler ko do,
+                // wo chala ke sendToolResponse se natija wapas karega.
+                JSONArray fcs = o.getJSONObject("toolCall")
+                        .optJSONArray("functionCalls");
+                ToolHandler h = toolHandler;
+                if (fcs != null && h != null) {
+                    for (int i = 0; i < fcs.length(); i++) {
+                        JSONObject fc = fcs.optJSONObject(i);
+                        if (fc == null) continue;
+                        final String fid = fc.optString("id", "");
+                        final String fname = fc.optString("name", "");
+                        JSONObject fa = fc.optJSONObject("args");
+                        final org.json.JSONObject fargs =
+                                fa != null ? fa : new JSONObject();
+                        Diag.event("tool call: " + fname);
+                        safe(() -> h.onToolCall(fid, fname, fargs));
+                    }
+                }
+                return;
+            }
+            if (o.has("toolCallCancellation")) {
+                return; // purani call radd — khamoshi se aage
+            }
             if (o.has("goAway")) {
                 // v50: ye NORMAL end hai (server ka waqt poora) — Diag me nishan rahe
                 Diag.event("live goAway — server ka waqt poora (normal end), reconnect ayega");
@@ -513,8 +548,113 @@ public class LiveTalk {
                                                 new JSONObject().put(
                                                         "voiceName", voiceName)))))
                 .put("inputAudioTranscription", new JSONObject())
-                .put("outputAudioTranscription", new JSONObject());
+                .put("outputAudioTranscription", new JSONObject())
+                .put("tools", toolsJson());
         return new JSONObject().put("setup", setup).toString();
+    }
+
+    /** v76: Ayesha ke haath — function declarations (Live tool-use). */
+    private JSONArray toolsJson() throws Exception {
+        JSONArray decls = new JSONArray();
+        decls.put(decl("open_app",
+                "Open ANY app installed on the phone by its name, e.g. WhatsApp, "
+                + "YouTube, Instagram, CapCut, Settings. The app really opens "
+                + "on screen. Result tells you if it truly opened.",
+                props("app_name", "STRING", "The app's name as the user said it"),
+                "app_name"));
+        decls.put(decl("open_whatsapp_chat",
+                "Open the WhatsApp chat of a person by their contact name.",
+                props("name", "STRING", "Contact name, e.g. Fazil"),
+                "name"));
+        decls.put(decl("send_whatsapp_message",
+                "Send a WhatsApp message to a contact. RULE: first call with "
+                + "confirmed=false — the result will tell you to ask the user "
+                + "for confirmation. Only after the user says yes, call again "
+                + "with confirmed=true to actually send.",
+                new JSONObject()
+                        .put("name", strProp("Contact name"))
+                        .put("message", strProp("Message text to send"))
+                        .put("confirmed", new JSONObject().put("type", "BOOLEAN")
+                                .put("description",
+                                        "false = just asking, true = user confirmed, send now")),
+                "name", "message", "confirmed"));
+        decls.put(decl("tap_screen",
+                "Tap on the screen at a position given in percent of screen "
+                + "width/height (0-100). Use what you see in the live video feed.",
+                new JSONObject()
+                        .put("x_percent", numProp("Horizontal position, percent 0-100"))
+                        .put("y_percent", numProp("Vertical position, percent 0-100")),
+                "x_percent", "y_percent"));
+        decls.put(decl("type_text",
+                "Type text into the currently focused input field on screen. "
+                + "The result verifies whether the text really landed.",
+                props("text", "STRING", "Text to type"),
+                "text"));
+        decls.put(decl("scroll_screen",
+                "Scroll the current screen up or down with a real swipe gesture.",
+                props("direction", "STRING", "'down' or 'up'"),
+                "direction"));
+        decls.put(decl("press_button",
+                "Press an Android system button: 'back' or 'home'.",
+                props("button", "STRING", "'back' or 'home'"),
+                "button"));
+        decls.put(decl("search_youtube",
+                "Search on YouTube and open the results in the YouTube app. "
+                + "If play=true, also tap the FIRST video so it starts playing.",
+                new JSONObject()
+                        .put("query", strProp("What to search, e.g. Ertugrul drama"))
+                        .put("play", new JSONObject().put("type", "BOOLEAN")
+                                .put("description",
+                                        "true = also play the first video")),
+                "query", "play"));
+        return new JSONArray().put(new JSONObject()
+                .put("functionDeclarations", decls));
+    }
+
+    private JSONObject decl(String name, String desc, JSONObject properties,
+                            String... required) throws Exception {
+        JSONObject params = new JSONObject()
+                .put("type", "OBJECT")
+                .put("properties", properties);
+        if (required.length > 0) {
+            JSONArray req = new JSONArray();
+            for (String r : required) req.put(r);
+            params.put("required", req);
+        }
+        return new JSONObject()
+                .put("name", name)
+                .put("description", desc)
+                .put("parameters", params);
+    }
+
+    private JSONObject props(String key, String type, String desc) throws Exception {
+        return new JSONObject().put(key, new JSONObject()
+                .put("type", type).put("description", desc));
+    }
+
+    private JSONObject strProp(String desc) throws Exception {
+        return new JSONObject().put("type", "STRING").put("description", desc);
+    }
+
+    private JSONObject numProp(String desc) throws Exception {
+        return new JSONObject().put("type", "NUMBER").put("description", desc);
+    }
+
+    /** v76: Tool ka natija model ko wapas — usi ki zubaan pe sach ayega. */
+    public void sendToolResponse(String id, String name, String resultText) {
+        LiveWs w = ws;
+        if (w == null || !w.isOpen() || !running) return;
+        try {
+            JSONObject fr = new JSONObject()
+                    .put("id", id == null ? "" : id)
+                    .put("name", name == null ? "" : name)
+                    .put("response", new JSONObject()
+                            .put("result", resultText == null ? "" : resultText));
+            JSONObject msg = new JSONObject().put("toolResponse",
+                    new JSONObject().put("functionResponses",
+                            new JSONArray().put(fr)));
+            w.sendText(msg.toString());
+        } catch (Exception ignored) { }
     }
 
     private String clientTextJson(String text) throws Exception {
