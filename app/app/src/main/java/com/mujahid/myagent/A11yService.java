@@ -488,6 +488,69 @@ public class A11yService extends AccessibilityService {
         }
     }
 
+    // ---------- v78: Clipboard actions (select all / copy / cut / paste) ----------
+
+    /** Focused likhne wali jagah pe pakka text action.
+     *  Paste pe field dobara parh ke TASDEEQ (text barha ya nahi). */
+    public static boolean textAction(String action) {
+        A11yService s = instance;
+        if (s == null || action == null) return false;
+        try {
+            AccessibilityNodeInfo root = s.getRootInActiveWindow();
+            if (root == null) return false;
+            AccessibilityNodeInfo input = null;
+            try {
+                input = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+            } catch (Exception ignored) { }
+            if (input == null) input = findEditable(root);
+            if (input == null) return false;
+            switch (action) {
+                case "select_all": {
+                    CharSequence t = input.getText();
+                    int len = t == null ? 0 : t.length();
+                    if (len == 0) return false;
+                    Bundle b = new Bundle();
+                    b.putInt(AccessibilityNodeInfo
+                            .ACTION_ARGUMENT_SELECTION_START_INT, 0);
+                    b.putInt(AccessibilityNodeInfo
+                            .ACTION_ARGUMENT_SELECTION_END_INT, len);
+                    return input.performAction(
+                            AccessibilityNodeInfo.ACTION_SET_SELECTION, b);
+                }
+                case "copy":
+                    return input.performAction(
+                            AccessibilityNodeInfo.ACTION_COPY);
+                case "cut":
+                    return input.performAction(
+                            AccessibilityNodeInfo.ACTION_CUT);
+                case "paste": {
+                    CharSequence before = input.getText();
+                    int bl = before == null ? 0 : before.length();
+                    if (!input.performAction(
+                            AccessibilityNodeInfo.ACTION_PASTE))
+                        return false;
+                    try { Thread.sleep(200); }
+                    catch (InterruptedException ignored) { }
+                    AccessibilityNodeInfo fresh = null;
+                    try {
+                        fresh = root.findFocus(
+                                AccessibilityNodeInfo.FOCUS_INPUT);
+                    } catch (Exception ignored) { }
+                    if (fresh == null) fresh = findEditable(root);
+                    CharSequence after = fresh == null ? null : fresh.getText();
+                    int al = after == null ? 0 : after.length();
+                    boolean ok = al > bl;
+                    Diag.event(ok ? "paste VERIFIED" : "paste NOT verified");
+                    return ok;
+                }
+                default:
+                    return false;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     // ---------- Tap by text ----------
 
     /** Screen pe "text" wale button/lafz pe tap karo. */
