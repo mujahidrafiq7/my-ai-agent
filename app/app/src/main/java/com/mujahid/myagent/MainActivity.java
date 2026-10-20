@@ -33,6 +33,7 @@ public class MainActivity extends Activity {
     private BeamsView beamsView;
     private View middleZone;
     private Button screenShareBtn;
+    private Button overlayBtn;
 
     private final VoiceService.StatusListener listener = this::onServiceStatus;
 
@@ -55,6 +56,12 @@ public class MainActivity extends Activity {
         // v43: Screen Share wapas ON — boss ka hukm (2026-10-07)
         screenShareBtn = findViewById(R.id.screenShareBtn);
         screenShareBtn.setOnClickListener(v -> toggleScreenShare());
+
+        // v75: Apps kholne ki ijazat (Display over other apps) — Android ka
+        // rule: ye ON ho tab hi background se app seedha saamne khulta hai.
+        overlayBtn = findViewById(R.id.overlayBtn);
+        overlayBtn.setOnClickListener(v -> openOverlaySettings());
+        syncOverlayBtn();
 
         // Reactor tap = conversation ON/OFF
         reactorView.setOnClickListener(v -> toggleConversation());
@@ -91,6 +98,7 @@ public class MainActivity extends Activity {
                 SettingsActivity.isLightingOn(this) ? View.VISIBLE : View.GONE);
         syncUi();
         syncShareBtn();
+        syncOverlayBtn();
         // v60: service jab WAQAI start ho (async race fix) — tabhi button ON + elan.
         ScreenShare.setStateListener(isOn -> runOnUiThread(() -> {
             syncShareBtn();
@@ -119,6 +127,30 @@ public class MainActivity extends Activity {
         if (screenShareBtn == null) return;
         boolean on = ScreenShare.isOn();
         screenShareBtn.setText(on ? "🖥 Screen Share: ON" : "🖥 Screen Share: OFF");
+    }
+
+    /** v75: ijazat wale button ki halat + settings kholna. */
+    private void syncOverlayBtn() {
+        if (overlayBtn == null) return;
+        boolean on = ForegroundOpen.overlayGranted(this);
+        overlayBtn.setText(on ? "📱 Apps Kholne Ki Ijazat: ON"
+                : "📱 Apps Kholne Ki Ijazat: OFF — dabao");
+    }
+
+    private void openOverlaySettings() {
+        if (ForegroundOpen.overlayGranted(this)) {
+            toast("Ijazat pehle se ON hai — apps ab seedha khulengi.");
+            return;
+        }
+        try {
+            Intent i = new Intent(
+                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    android.net.Uri.parse("package:" + getPackageName()));
+            startActivity(i);
+            toast("Ayesha ke liye 'Display over other apps' ON kar do.");
+        } catch (Exception e) {
+            toast("Settings → Apps → Ayesha → Display over other apps → ON karo.");
+        }
     }
 
     @Override
