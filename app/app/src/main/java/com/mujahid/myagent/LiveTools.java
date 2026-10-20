@@ -91,6 +91,12 @@ public class LiveTools {
                             a.optString("query", ""),
                             a.optBoolean("play", false));
 
+                case "remember_task":
+                    return TaskStore.add(ctx, a.optString("task", ""));
+
+                case "complete_task":
+                    return TaskStore.complete(ctx, a.optString("task", ""));
+
                 default:
                     return "Ye tool mojood nahi: " + name;
             }

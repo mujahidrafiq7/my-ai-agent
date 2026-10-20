@@ -607,6 +607,19 @@ public class LiveTalk {
                                 .put("description",
                                         "true = also play the first video")),
                 "query", "play"));
+        decls.put(decl("remember_task",
+                "Save a job/task the user gives you ('ye kaam karna hai', "
+                + "'kal ye check karna', any work for later) into the PENDING "
+                + "TASKS list. It survives the session ending — you will see "
+                + "it again next session under [BAQI KAAM]. Call this whenever "
+                + "he assigns you work that is not done right now.",
+                props("task", "STRING", "The task in his own words, short"),
+                "task"));
+        decls.put(decl("complete_task",
+                "Mark a pending task as done and remove it from the list. "
+                + "Call when a task from [BAQI KAAM] is finished.",
+                props("task", "STRING", "The task text (or part of it) to complete"),
+                "task"));
         return new JSONArray().put(new JSONObject()
                 .put("functionDeclarations", decls));
     }
