@@ -90,6 +90,22 @@ public class PhoneTools {
 
     private static final String YT_PKG = "com.google.android.youtube";
 
+    /** v76: TOOL darwaza — model khud app kholti hai, natija use yahi milega. */
+    public static String openAppByName(Context ctx, String name) {
+        String n = name == null ? "" : name.trim();
+        if (n.isEmpty()) return "App ka naam samajh nahi aya boss.";
+        String pkg = findApp(ctx, norm(n));
+        if (pkg == null) return "Ye app phone me nahi mili: " + n;
+        return openVerified(ctx, pkg, n).reply;
+    }
+
+    /** v76: TOOL darwaza — YouTube search/play, verify wala natija. */
+    public static String youtube(Context ctx, String q, boolean play) {
+        if (q == null || q.trim().isEmpty())
+            return "Search ke liye kuch bola hi nahi boss.";
+        return openYouTubeSearch(ctx, q.trim(), play).reply;
+    }
+
     public static Result tryHandle(Context ctx, String text) {
         String t = norm(text); // norm = Urdu script + English verbs + fuzzy names (sab)
 
