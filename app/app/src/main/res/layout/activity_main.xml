@@ -208,18 +208,6 @@
             android:textColor="#2E9BFF"
             android:background="#141B28" />
 
-        <Button
-            android:id="@+id/overlayBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/screenShareBtn"
-            android:layout_alignStart="@id/statusText"
-            android:layout_alignEnd="@id/statusText"
-            android:layout_marginTop="6dp"
-            android:text="📱 Apps Kholne Ki Ijazat: OFF"
-            android:textSize="12sp"
-            android:textColor="#FFB84D"
-            android:background="#141B28" />
     </RelativeLayout>
 
     <!-- Lower cards -->
@@ -230,12 +218,15 @@
         android:layout_margin="12dp">
 
         <LinearLayout
+            android:id="@+id/briefCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="6dp"
             android:background="@drawable/card_bg"
             android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true"
             android:padding="14dp">
 
             <TextView

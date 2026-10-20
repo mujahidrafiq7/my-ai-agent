@@ -607,6 +607,27 @@ public class LiveTalk {
                                 .put("description",
                                         "true = also play the first video")),
                 "query", "play"));
+        decls.put(decl("long_press_screen",
+                "Long-press (press and hold) on the screen at a position in "
+                + "percent of width/height (0-100). Use to open menus — e.g. "
+                + "hold a message or text to make the Copy menu appear.",
+                new JSONObject()
+                        .put("x_percent", numProp("Horizontal position, percent 0-100"))
+                        .put("y_percent", numProp("Vertical position, percent 0-100")),
+                "x_percent", "y_percent"));
+        decls.put(decl("tap_text",
+                "Tap a visible label or button on the screen by its exact "
+                + "text, e.g. 'Copy', 'Paste', 'Select all', 'Send'.",
+                props("text", "STRING", "The visible text to tap"),
+                "text"));
+        decls.put(decl("text_action",
+                "Do a text/clipboard action inside the FOCUSED text field: "
+                + "'select_all' selects everything, 'copy' copies the "
+                + "selection, 'cut' cuts it, 'paste' pastes the clipboard "
+                + "into the field (verified by reading the field).",
+                props("action", "STRING",
+                        "One of: select_all, copy, cut, paste"),
+                "action"));
         decls.put(decl("remember_task",
                 "Save a job/task the user gives you ('ye kaam karna hai', "
                 + "'kal ye check karna', any work for later) into the PENDING "

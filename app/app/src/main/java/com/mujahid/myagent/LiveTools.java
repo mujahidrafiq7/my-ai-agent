@@ -97,6 +97,58 @@ public class LiveTools {
                 case "complete_task":
                     return TaskStore.complete(ctx, a.optString("task", ""));
 
+                case "long_press_screen": {
+                    if (!A11yService.isEnabled())
+                        return "Long-press nahi ho saka — Accessibility me Ayesha OFF hai.";
+                    DisplayMetrics dmLp = ctx.getResources().getDisplayMetrics();
+                    boolean okLp = A11yService.longPressAtCoordinates(
+                            (float) (dmLp.widthPixels
+                                    * a.optDouble("x_percent", 50) / 100.0),
+                            (float) (dmLp.heightPixels
+                                    * a.optDouble("y_percent", 50) / 100.0));
+                    return okLp
+                            ? "Long-press ho gaya. Agar menu khula hai to feed pe "
+                                    + "dekho — phir tap_text se matlooba lafz dabao."
+                            : "Long-press nahi ho saka — gesture cancel ho gaya.";
+                }
+
+                case "tap_text": {
+                    String txt = a.optString("text", "");
+                    boolean okT = A11yService.tapText(txt)
+                            || A11yService.tapByDesc(
+                                    txt.toLowerCase(java.util.Locale.ROOT));
+                    return okT
+                            ? "'" + txt + "' daba diya."
+                            : "'" + txt + "' screen pe nahi mila — feed pe dekh "
+                                    + "ke tap_screen se dabao.";
+                }
+
+                case "text_action": {
+                    String act = a.optString("action", "");
+                    boolean okA = A11yService.textAction(act);
+                    switch (act) {
+                        case "select_all":
+                            return okA ? "Saara text select ho gaya."
+                                    : "Select nahi ho saka — field me text nahi "
+                                            + "hai ya koi field selected nahi.";
+                        case "copy":
+                            return okA ? "Copy ho gaya — text clipboard me hai."
+                                    : "Copy nahi ho saka — pehle text select karo "
+                                            + "ya field pe focus karo.";
+                        case "cut":
+                            return okA ? "Cut ho gaya — text wahan se hat ke "
+                                            + "clipboard me chala gaya."
+                                    : "Cut nahi ho saka — pehle text select karo.";
+                        case "paste":
+                            return okA ? "Paste ho gaya — field me parh ke "
+                                            + "tasdeeq bhi kar li."
+                                    : "Paste nahi hua — clipboard khaali ho sakta "
+                                            + "hai ya koi field selected nahi.";
+                        default:
+                            return "Ye text action samajh nahi aya: " + act;
+                    }
+                }
+
                 default:
                     return "Ye tool mojood nahi: " + name;
             }

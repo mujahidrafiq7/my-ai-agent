@@ -186,8 +186,12 @@ public class WhatsAppAction {
                     + " contacts me nahi mila boss — naam ya number check karo.");
         ForegroundOpen.open(ctx, waChat(num), cap(name) + " ki chat");
         // v75: VERIFY — chat asal me saamne ayi ya nahi, jhoot nahi
+        // v78: fixed neend ki jagah polling (har 150ms check)
         if (A11yService.isEnabled()) {
-            sleep(1600);
+            long end = System.currentTimeMillis() + 1600;
+            while (System.currentTimeMillis() < end
+                    && !"com.whatsapp".equals(A11yService.getForegroundPackage()))
+                sleep(150);
             if (!"com.whatsapp".equals(A11yService.getForegroundPackage()))
                 return new Result(true, cap(name)
                         + " ki chat saamne nahi ayi boss — apps kholne ki ijazat ON karo, ya notification wala 'Kholo' dabao.");
@@ -203,7 +207,7 @@ public class WhatsAppAction {
             return new Result(true, cap(name)
                     + " contacts me nahi mila boss — naam ya number check karo.");
         ForegroundOpen.open(ctx, waChat(num), cap(name) + " ki chat");
-        sleep(2800);
+        waitChatOpen(2800); // v78 polling
         boolean typed = A11yService.focusAndType(msg); // v64: focus karke type
         sleep(1200);
         boolean sent = false;
@@ -228,7 +232,7 @@ public class WhatsAppAction {
             return new Result(true, cap(name)
                     + " contacts me nahi mila boss — naam ya number check karo.");
         ForegroundOpen.open(ctx, waChat(num), cap(name) + " ki chat");
-        sleep(2800);
+        waitChatOpen(2800); // v78 polling
         boolean ok = A11yService.tapByDesc(video ? "video call" : "voice call");
         if (ok) return new Result(true,
                 video ? "Video call laga di." : "Call laga di.");
@@ -300,6 +304,20 @@ public class WhatsAppAction {
     private static String cap(String s) {
         if (s == null || s.isEmpty()) return s;
         return s.substring(0, 1).toUpperCase(Locale.ROOT) + s.substring(1);
+    }
+
+    /** v78: chat khulne ka polling intizar — neend nahi, jhankna.
+     *  WhatsApp saamne aate hi thora sa settle, phir foran wapas. */
+    private static void waitChatOpen(long maxMs) {
+        if (!A11yService.isEnabled()) { sleep(maxMs); return; }
+        long end = System.currentTimeMillis() + maxMs;
+        while (System.currentTimeMillis() < end) {
+            if ("com.whatsapp".equals(A11yService.getForegroundPackage())) {
+                sleep(600); // chat ka andar ka hissa load ho jaye
+                return;
+            }
+            sleep(150);
+        }
     }
 
     private static void sleep(long ms) {

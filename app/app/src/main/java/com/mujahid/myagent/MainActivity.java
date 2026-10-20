@@ -33,7 +33,6 @@ public class MainActivity extends Activity {
     private BeamsView beamsView;
     private View middleZone;
     private Button screenShareBtn;
-    private Button overlayBtn;
 
     private final VoiceService.StatusListener listener = this::onServiceStatus;
 
@@ -57,11 +56,14 @@ public class MainActivity extends Activity {
         screenShareBtn = findViewById(R.id.screenShareBtn);
         screenShareBtn.setOnClickListener(v -> toggleScreenShare());
 
-        // v75: Apps kholne ki ijazat (Display over other apps) — Android ka
-        // rule: ye ON ho tab hi background se app seedha saamne khulta hai.
-        overlayBtn = findViewById(R.id.overlayBtn);
-        overlayBtn.setOnClickListener(v -> openOverlaySettings());
-        syncOverlayBtn();
+        // v78: INTELLIGENCE BRIEF card — "+ MORE" ab asal Brief kholta hai
+        View briefCard = findViewById(R.id.briefCard);
+        if (briefCard != null)
+            briefCard.setOnClickListener(v -> showBrief());
+        // (v78: "Apps Kholne Ki Ijazat" wala button UI se hata diya —
+        //  ijazat ek dafa ON ho ke settings me rehti hai, button ki
+        //  zaroorat nahi. ForegroundOpen.overlayGranted andar kaam
+        //  karta rehta hai.)
 
         // Reactor tap = conversation ON/OFF
         reactorView.setOnClickListener(v -> toggleConversation());
@@ -98,7 +100,6 @@ public class MainActivity extends Activity {
                 SettingsActivity.isLightingOn(this) ? View.VISIBLE : View.GONE);
         syncUi();
         syncShareBtn();
-        syncOverlayBtn();
         // v60: service jab WAQAI start ho (async race fix) — tabhi button ON + elan.
         ScreenShare.setStateListener(isOn -> runOnUiThread(() -> {
             syncShareBtn();
@@ -129,28 +130,30 @@ public class MainActivity extends Activity {
         screenShareBtn.setText(on ? "🖥 Screen Share: ON" : "🖥 Screen Share: OFF");
     }
 
-    /** v75: ijazat wale button ki halat + settings kholna. */
-    private void syncOverlayBtn() {
-        if (overlayBtn == null) return;
-        boolean on = ForegroundOpen.overlayGranted(this);
-        overlayBtn.setText(on ? "📱 Apps Kholne Ki Ijazat: ON"
-                : "📱 Apps Kholne Ki Ijazat: OFF — dabao");
-    }
-
-    private void openOverlaySettings() {
-        if (ForegroundOpen.overlayGranted(this)) {
-            toast("Ijazat pehle se ON hai — apps ab seedha khulengi.");
-            return;
+    /** v78: "+ MORE" — Aaj ka Brief: tareekh, baqi kaam, aakhri guftagu. */
+    private void showBrief() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(LiveContext.dateTimeLine()).append("\n");
+        java.util.List<String> tasks = TaskStore.list(this);
+        sb.append("\nBaqi kaam (pending tasks):\n");
+        if (tasks.isEmpty()) {
+            sb.append("• Koi baqi kaam nahi.\n");
+        } else {
+            for (String t : tasks) sb.append("• ").append(t).append("\n");
         }
-        try {
-            Intent i = new Intent(
-                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    android.net.Uri.parse("package:" + getPackageName()));
-            startActivity(i);
-            toast("Ayesha ke liye 'Display over other apps' ON kar do.");
-        } catch (Exception e) {
-            toast("Settings → Apps → Ayesha → Display over other apps → ON karo.");
+        String turns = LiveContext.recentTurnsBlock(this);
+        if (turns != null && !turns.isEmpty()) {
+            int nl = turns.indexOf('\n');
+            if (nl > 0) turns = turns.substring(nl + 1); // hidayat wali line hatao
+            if (turns.length() > 500)
+                turns = turns.substring(turns.length() - 500);
+            sb.append("\nAakhri guftagu:\n").append(turns.trim());
         }
+        new AlertDialog.Builder(this)
+                .setTitle("📋 Aaj Ka Brief")
+                .setMessage(sb.toString())
+                .setPositiveButton("Theek hai", null)
+                .show();
     }
 
     @Override

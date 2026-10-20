@@ -205,15 +205,16 @@ public class PhoneTools {
             return new Result(true, "Ye app nahi mili: " + appName, null);
         boolean a11y = A11yService.isEnabled();
 
-        // Qadam 1: SEEDHA launch — Accessibility service ke zariye
-        A11yService.openApp(pkg);
-        if (a11y && waitForeground(pkg, 1000))
+        // v78 Qadam 1: SEEDHA rasta pehle — ijazat wala (ForegroundOpen),
+        // polling check (neend nahi, har 150ms jhankna)
+        fire(ctx, i);
+        if (a11y && waitForeground(pkg, 1200))
             return new Result(true, "Khol diya boss.", i);
 
-        // Qadam 2: purana rasta (app saamne ho to direct, warna notification)
-        fire(ctx, i);
+        // Qadam 2: Accessibility service se launch (backup)
+        A11yService.openApp(pkg);
         if (a11y) {
-            if (waitForeground(pkg, 1500))
+            if (waitForeground(pkg, 1000))
                 return new Result(true, "Khol diya boss.", i);
             // v75: asal rukawat ka naam lo — ijazat OFF ho to wahi batao
             if (!ForegroundOpen.overlayGranted(ctx))
@@ -228,10 +229,15 @@ public class PhoneTools {
                 "Khula ya nahi, pakka nahi boss — notification me 'Kholo' dabao.", i);
     }
 
-    /** Itna ruko, phir dekho matluba app saamne ayi ya nahi. */
+    /** v78: NEEND KHATAM — fixed sone ki jagah har 150ms JHANKO;
+     *  app saamne aate hi foran true (pehle poora waqt sona parta tha). */
     private static boolean waitForeground(String pkg, long ms) {
-        try { Thread.sleep(ms); } catch (Exception ignored) { }
-        return pkg.equals(A11yService.getForegroundPackage());
+        long end = System.currentTimeMillis() + ms;
+        while (true) {
+            if (pkg.equals(A11yService.getForegroundPackage())) return true;
+            if (System.currentTimeMillis() >= end) return false;
+            try { Thread.sleep(150); } catch (Exception ignored) { }
+        }
     }
 
     /** v75: YouTube search kholo — VERIFY ke sath. play=true ho to
