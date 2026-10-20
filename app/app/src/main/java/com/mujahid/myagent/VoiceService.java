@@ -276,6 +276,18 @@ public class VoiceService extends Service {
     private void startLiveMode() {
         emitStatus("connecting live...");
         liveTalk = new LiveTalk();
+        // v76: Ayesha ke apne TOOLS — model khud call karegi, kaam worker pe
+        // hoga, natija tool-response ki surat me seedha model ko milega.
+        liveTalk.setToolHandler((id, name, args) -> {
+            final LiveTalk lt = liveTalk;
+            try {
+                liveCmdExec.execute(() -> {
+                    String res = LiveTools.execute(VoiceService.this, name, args);
+                    Diag.event("tool " + name + " -> " + res);
+                    if (lt != null) lt.sendToolResponse(id, name, res);
+                });
+            } catch (Exception ignored) { }
+        });
         liveTalk.start(this, new LiveTalk.Listener() {
             @Override public void onReady() {
                 emitStatus("live");
@@ -398,6 +410,10 @@ public class VoiceService extends Service {
     // v73: live commands ke liye apna worker — ek ek karke, tarteeb se
     private final java.util.concurrent.ExecutorService liveCmdExec =
             java.util.concurrent.Executors.newSingleThreadExecutor();
+
+    /** v76: LIVE me model ke TOOLS active — beech wala handler rasta band.
+     *  (Kabhi wapas karna ho to sirf ye flag false karna hai.) */
+    private static final boolean LIVE_TOOLS_V76 = true;
 
     /** Share ON ho to har ~1 second taaza frame Live session ko — live feed. */
     private void startStreamPump() {
@@ -553,6 +569,12 @@ public class VoiceService extends Service {
             }
             return;
         }
+
+        // v76: LIVE me beech wala handler rasta BAND — ab model KHUD tools
+        // call karti hai (LiveTools); usi ko natija milta hai, usi pe bolti
+        // hai. (Neeche wale handlers sirf purane chat raste ke liye rehte
+        // hain — handleCommand unhe wahan se chalata hai.)
+        if (LIVE_TOOLS_V76) return;
 
         // Phone commands — phone khud karta hai (model ne pehle hi jawab de diya)
         WhatsAppAction.Result wa = WhatsAppAction.tryHandle(
