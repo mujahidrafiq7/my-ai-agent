@@ -321,35 +321,35 @@ public class SettingsActivity extends Activity {
                         + "warm and caring if they sound emotional, sharp and direct if they are "
                         + "serious, sweet and loving if they are romantic. Never announce the "
                         + "adaptation; just naturally be what the moment needs.";
-                names = "'Boss'";
+                names = "'Mujahid', 'Hero' or 'Raja'";
                 break;
             case 2:
                 style = "Personality style: like a sweet, caring girlfriend — "
                         + "affectionate, a little playful, warm. Make him smile.";
-                names = "'Mujahid' or 'Jaan'";
+                names = "'Jaan', 'Mujahid' or 'Dilbar'";
                 break;
             case 3:
                 style = "Personality style: confident and to-the-point, respectful boss-like tone.";
-                names = "'Sir' or 'Boss'";
+                names = "'Sarkar', 'Janab' or 'Malik'";
                 break;
             case 4:
                 style = "Personality style: light-hearted and playful — keep it fun, never rude.";
-                names = "'Chumiii' or 'Kaky'";
+                names = "'Chumiii', 'Mujju' or 'Munna'";
                 break;
             case 5:
                 style = "Personality style: calm and soothing — gentle, unhurried.";
-                names = "'Sahab' or 'Janab'";
+                names = "'Mian', 'Sahab' or 'Mujahid'";
                 break;
             default:
                 style = "Personality style: warm and friendly, like a caring friend.";
-                names = "'Dost' or 'Yaar'";
+                names = "'Dost', 'Yaar' or 'Jigar'";
                 break;
         }
         return style + " ADDRESS NAME RULE (set by Boss himself — this overrides any other "
                 + "name for him written anywhere else, including example sentences): in THIS "
                 + "mode, address him as " + names + ". Use these names often and naturally "
-                + "in your replies; when two names are given, use BOTH — alternate between "
-                + "them from reply to reply, never stick to only one.";
+                + "in your replies; use ALL of these names — alternate between them from "
+                + "reply to reply, never stick to only one.";
     }
 
     /** v53: Voice chuno — agli Live call se nayi awaz. */
@@ -368,18 +368,16 @@ public class SettingsActivity extends Activity {
     }
 
     /** v53: Personality chuno — agli baat se naya andaz. */
-    private void showPersonalityDialog(TextView valueView) {
-        new android.app.AlertDialog.Builder(this)
-                .setTitle("Personality")
-                .setSingleChoiceItems(PERSONALITIES, personalityIdx(this),
-                        (d, which) -> {
-                            getSharedPreferences("app_settings", MODE_PRIVATE)
-                                    .edit().putInt("personality_idx", which).apply();
-                            valueView.setText(PERSONALITIES[which]);
-                            d.dismiss();
-                        })
-                .setNegativeButton("Cancel", null)
-                .show();
+    // v83: Personality ab dialog nahi — us ka apna poora page hai
+    // (PersonalityActivity). Settings ka label onResume me taza hota hai.
+    private TextView persValue;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (persValue != null) {
+            persValue.setText(PERSONALITIES[personalityIdx(this)]);
+        }
     }
 
     /** v56: Emotion chuno — agli baat se wahi mood. */
@@ -454,9 +452,10 @@ public class SettingsActivity extends Activity {
         root.addView(voiceCard);
 
         LinearLayout persCard = settingCard("Personality", null);
-        TextView persValue = valueLabel(PERSONALITIES[personalityIdx(this)]);
+        persValue = valueLabel(PERSONALITIES[personalityIdx(this)]);
         persCard.addView(persValue);
-        persCard.setOnClickListener(v -> showPersonalityDialog(persValue));
+        persCard.setOnClickListener(v -> startActivity(
+                new Intent(this, PersonalityActivity.class)));
         root.addView(persCard);
 
         LinearLayout emoCard = settingCard("Emotion", null);

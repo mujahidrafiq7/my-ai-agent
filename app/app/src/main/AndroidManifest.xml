@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mujahid.myagent"
-    android:versionCode="82"
-    android:versionName="1.0-naam">
+    android:versionCode="83"
+    android:versionName="1.0-final">
 
     <!-- Manual aapt2 build ke liye SDK yahin declare — taake targetSdk kabhi miss na ho -->
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
@@ -57,6 +57,9 @@
         </activity>
         <activity
             android:name=".SettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".PersonalityActivity"
             android:exported="false" />
         <activity
             android:name=".ChatActivity"
