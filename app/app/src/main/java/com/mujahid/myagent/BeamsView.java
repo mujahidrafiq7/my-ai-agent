@@ -47,7 +47,7 @@ public class BeamsView extends View {
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         animator = ValueAnimator.ofFloat(0f, 1f);
-        animator.setDuration(2400);
+        animator.setDuration(1200);
         animator.setRepeatCount(ValueAnimator.INFINITE);
         animator.setInterpolator(new LinearInterpolator());
         animator.addUpdateListener(a -> {
@@ -63,9 +63,11 @@ public class BeamsView extends View {
         super.onDetachedFromWindow();
     }
 
-    /** Conversation active ho to dots tez, warna slow. */
+    /** Conversation active ho to dots tez, warna slow.
+     *  v87: waqt aadha is liye ke spacing bhi aadhi hai — behne ki
+     *  asal raftaar (pixel/sec) bilkul wahi purani perfect wali. */
     public void setActive(boolean on) {
-        if (animator != null) animator.setDuration(on ? 650 : 2400);
+        if (animator != null) animator.setDuration(on ? 325 : 1200);
     }
 
     /** Har beam: start (button ka right edge), color; end = reactor ka center. */
@@ -84,8 +86,9 @@ public class BeamsView extends View {
     protected void onDraw(Canvas canvas) {
         if (!ready || sx == null) return;
         float density = getResources().getDisplayMetrics().density;
-        float spacing = 30f * density;
-        float r = 3.4f * density;
+        // v87: dots ab qareeb qareeb (15dp) aur baari baari BARE/chhote —
+        // boss ki reference image wala pattern; rang aur raftaar wahi.
+        float spacing = 15f * density;
         float offset = progress * spacing;
         for (int i = 0; i < sx.length; i++) {
             float dx = ex - sx[i];
@@ -98,6 +101,7 @@ public class BeamsView extends View {
                 if (d < 0f || d > len) continue;
                 float x = sx[i] + dx * (d / len);
                 float y = sy[i] + dy * (d / len);
+                float r = (k % 2 == 0) ? 3.4f * density : 1.5f * density;
                 int col = PALETTE[(k + i * 2) % PALETTE.length];
                 haloPaint.setColor(Color.argb(50,
                         Color.red(col), Color.green(col), Color.blue(col)));

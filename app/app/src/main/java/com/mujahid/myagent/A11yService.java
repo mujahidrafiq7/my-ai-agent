@@ -471,10 +471,19 @@ public class A11yService extends AccessibilityService {
         if (s == null) return false;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false;
         try {
-            android.util.DisplayMetrics m = s.getResources().getDisplayMetrics();
-            float cx = m.widthPixels / 2f;
-            float y1 = down ? m.heightPixels * 0.7f : m.heightPixels * 0.3f;
-            float y2 = down ? m.heightPixels * 0.3f : m.heightPixels * 0.7f;
+            android.graphics.Point rp = new android.graphics.Point();
+            try {
+                ((android.view.WindowManager) s.getSystemService(
+                        android.content.Context.WINDOW_SERVICE))
+                        .getDefaultDisplay().getRealSize(rp);
+            } catch (Exception ignored) { }
+            int sw = rp.x > 0 ? rp.x
+                    : s.getResources().getDisplayMetrics().widthPixels;
+            int sh = rp.y > 0 ? rp.y
+                    : s.getResources().getDisplayMetrics().heightPixels;
+            float cx = sw / 2f;
+            float y1 = down ? sh * 0.7f : sh * 0.3f;
+            float y2 = down ? sh * 0.3f : sh * 0.7f;
             Path p = new Path();
             p.moveTo(cx, y1);
             p.lineTo(cx, y2);

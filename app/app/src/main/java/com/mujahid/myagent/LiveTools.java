@@ -19,6 +19,24 @@ import org.json.JSONObject;
  */
 public class LiveTools {
 
+    /**
+     * v87: ASAL poori screen ka size (upar/neeche ki system pattiyan
+     * samet). Pehle getDisplayMetrics() pattiyan ghata ke deta tha —
+     * isi liye tap asal jagah se upar lagta tha aur screen ke neeche
+     * wale hisse tak tap phonch hi nahi sakta tha.
+     */
+    private static int[] realSize(Context ctx) {
+        try {
+            android.view.WindowManager wm = (android.view.WindowManager)
+                    ctx.getSystemService(Context.WINDOW_SERVICE);
+            android.graphics.Point p = new android.graphics.Point();
+            wm.getDefaultDisplay().getRealSize(p);
+            if (p.x > 0 && p.y > 0) return new int[]{p.x, p.y};
+        } catch (Exception ignored) { }
+        DisplayMetrics dm = ctx.getResources().getDisplayMetrics();
+        return new int[]{dm.widthPixels, dm.heightPixels};
+    }
+
     public static String execute(Context ctx, String name, JSONObject a) {
         if (a == null) a = new JSONObject();
         try {
@@ -48,10 +66,10 @@ public class LiveTools {
                 case "tap_screen": {
                     if (!A11yService.isEnabled())
                         return "Tap nahi ho saka — Accessibility me Ayesha OFF hai.";
-                    DisplayMetrics dm = ctx.getResources().getDisplayMetrics();
-                    int x = (int) (dm.widthPixels
+                    int[] rs = realSize(ctx);
+                    int x = (int) (rs[0]
                             * a.optDouble("x_percent", 50) / 100.0);
-                    int y = (int) (dm.heightPixels
+                    int y = (int) (rs[1]
                             * a.optDouble("y_percent", 50) / 100.0);
                     boolean ok = A11yService.tapAtCoordinates(x, y);
                     return ok
@@ -100,11 +118,11 @@ public class LiveTools {
                 case "long_press_screen": {
                     if (!A11yService.isEnabled())
                         return "Long-press nahi ho saka — Accessibility me Ayesha OFF hai.";
-                    DisplayMetrics dmLp = ctx.getResources().getDisplayMetrics();
+                    int[] rsLp = realSize(ctx);
                     boolean okLp = A11yService.longPressAtCoordinates(
-                            (float) (dmLp.widthPixels
+                            (float) (rsLp[0]
                                     * a.optDouble("x_percent", 50) / 100.0),
-                            (float) (dmLp.heightPixels
+                            (float) (rsLp[1]
                                     * a.optDouble("y_percent", 50) / 100.0));
                     return okLp
                             ? "Long-press ho gaya. Agar menu khula hai to feed pe "

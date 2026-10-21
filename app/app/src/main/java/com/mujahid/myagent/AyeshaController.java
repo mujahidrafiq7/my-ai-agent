@@ -20,10 +20,10 @@ public class AyeshaController {
             if (bitmap == null) return null;
 
             int w = bitmap.getWidth(), h = bitmap.getHeight();
-            if (w > 768) {
-                float scale = 768f / w;
+            if (w > 1080) {
+                float scale = 1080f / w;
                 bitmap = Bitmap.createScaledBitmap(bitmap,
-                        768, Math.round(h * scale), true);
+                        1080, Math.round(h * scale), true);
             }
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             bitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);

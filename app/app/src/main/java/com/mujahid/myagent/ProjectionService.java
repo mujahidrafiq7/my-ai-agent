@@ -102,9 +102,18 @@ public class ProjectionService extends Service {
             }, new Handler(Looper.getMainLooper()));
 
             DisplayMetrics m = getResources().getDisplayMetrics();
-            // v45: NATIVE resolution — 720p wala dabao khatam, text saaf nazar aayega
+            // v87: capture bhi ASAL poori screen pe (pattiyan samet) —
+            // taake model jis tasveer ko dekhta hai aur jahan tap lagta
+            // hai, dono ka hisaab ek ho (v45: native resolution)
             vw = m.widthPixels;
             vh = m.heightPixels;
+            try {
+                android.graphics.Point rp = new android.graphics.Point();
+                ((android.view.WindowManager) getSystemService(
+                        android.content.Context.WINDOW_SERVICE))
+                        .getDefaultDisplay().getRealSize(rp);
+                if (rp.x > 0 && rp.y > 0) { vw = rp.x; vh = rp.y; }
+            } catch (Exception ignored) { }
             densityDpi = m.densityDpi;
             // v44: VirtualDisplay ab har capture pe banta hai — yahan sirf projection
             running = true;
