@@ -86,6 +86,7 @@ public class MainActivity extends Activity {
                 startActivity(new Intent(this, SettingsActivity.class)));
 
         setupBeams();
+        A11yWatchdog.schedule(this); // v88: chowkidar ka alarm lagao
     }
 
     @Override
