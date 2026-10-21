@@ -28,7 +28,6 @@ import java.util.List;
 public class MainActivity extends Activity {
 
     private TextView statusText;
-    private TextView sysVoiceState;
     private ReactorView reactorView;
     private BeamsView beamsView;
     private View middleZone;
@@ -43,7 +42,6 @@ public class MainActivity extends Activity {
         Themes.tint(this); // v51 "Rang": user ki pasand ka theme
 
         statusText = findViewById(R.id.statusText);
-        sysVoiceState = findViewById(R.id.sysVoiceState);
         reactorView = findViewById(R.id.reactorView);
         beamsView = findViewById(R.id.beamsView);
         middleZone = findViewById(R.id.middleZone);
@@ -59,7 +57,7 @@ public class MainActivity extends Activity {
         // v78: INTELLIGENCE BRIEF card — "+ MORE" ab asal Brief kholta hai
         View briefCard = findViewById(R.id.briefCard);
         if (briefCard != null)
-            briefCard.setOnClickListener(v -> showBrief());
+            briefCard.setOnClickListener(v -> openInfo("brief"));
         // (v78: "Apps Kholne Ki Ijazat" wala button UI se hata diya —
         //  ijazat ek dafa ON ho ke settings me rehti hai, button ki
         //  zaroorat nahi. ForegroundOpen.overlayGranted andar kaam
@@ -69,10 +67,10 @@ public class MainActivity extends Activity {
         reactorView.setOnClickListener(v -> toggleConversation());
 
         // Left pills
-        findViewById(R.id.pillMemory).setOnClickListener(v -> showMemories());
+        findViewById(R.id.pillMemory).setOnClickListener(v -> openInfo("memories"));
         findViewById(R.id.pillChat).setOnClickListener(v ->
                 startActivity(new Intent(this, ChatActivity.class)));
-        findViewById(R.id.pillSoul).setOnClickListener(v -> showSoul());
+        findViewById(R.id.pillSoul).setOnClickListener(v -> openInfo("soul"));
         findViewById(R.id.pillSettings).setOnClickListener(v ->
                 startActivity(new Intent(this, SettingsActivity.class)));
 
@@ -81,7 +79,7 @@ public class MainActivity extends Activity {
         findViewById(R.id.navChat).setOnClickListener(v ->
                 startActivity(new Intent(this, ChatActivity.class)));
         findViewById(R.id.navVoice).setOnClickListener(v -> toggleConversation());
-        findViewById(R.id.navMemory).setOnClickListener(v -> showMemories());
+        findViewById(R.id.navMemory).setOnClickListener(v -> openInfo("memories"));
         findViewById(R.id.navHistory).setOnClickListener(v -> // v52 "History"
                 startActivity(new Intent(this, HistoryActivity.class)));
         findViewById(R.id.navSettings).setOnClickListener(v ->
@@ -130,30 +128,10 @@ public class MainActivity extends Activity {
         screenShareBtn.setText(on ? "🖥 Screen Share: ON" : "🖥 Screen Share: OFF");
     }
 
-    /** v78: "+ MORE" — Aaj ka Brief: tareekh, baqi kaam, aakhri guftagu. */
-    private void showBrief() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(LiveContext.dateTimeLine()).append("\n");
-        java.util.List<String> tasks = TaskStore.list(this);
-        sb.append("\nBaqi kaam (pending tasks):\n");
-        if (tasks.isEmpty()) {
-            sb.append("• Koi baqi kaam nahi.\n");
-        } else {
-            for (String t : tasks) sb.append("• ").append(t).append("\n");
-        }
-        String turns = LiveContext.recentTurnsBlock(this);
-        if (turns != null && !turns.isEmpty()) {
-            int nl = turns.indexOf('\n');
-            if (nl > 0) turns = turns.substring(nl + 1); // hidayat wali line hatao
-            if (turns.length() > 500)
-                turns = turns.substring(turns.length() - 500);
-            sb.append("\nAakhri guftagu:\n").append(turns.trim());
-        }
-        new AlertDialog.Builder(this)
-                .setTitle("📋 Aaj Ka Brief")
-                .setMessage(sb.toString())
-                .setPositiveButton("Theek hai", null)
-                .show();
+    /** v86: Brief ab dialog nahi — InfoActivity ka poora page (kind="brief"). */
+    private void openInfo(String kind) {
+        startActivity(new Intent(this, InfoActivity.class)
+                .putExtra("kind", kind));
     }
 
     @Override
@@ -232,7 +210,7 @@ public class MainActivity extends Activity {
     private void syncUi() {
         boolean active = VoiceService.isRunning();
         reactorView.setActive(active);
-        sysVoiceState.setText(active ? "● Voice active" : "● Voice ready");
+        if (beamsView != null) beamsView.setActive(active);
         if (!active && statusText != null
                 && statusText.getText().toString().equals("listening")) {
             statusText.setText("ready");
@@ -267,48 +245,9 @@ public class MainActivity extends Activity {
                 });
     }
 
-    // ---------- 🧠 Yaadein ----------
-
-    private void showMemories() {
-        List<String> all = Memory.getAll(this);
-        StringBuilder sb = new StringBuilder();
-        if (all.isEmpty()) {
-            sb.append("Nothing remembered yet — say \"remember that ...\"");
-        } else {
-            for (int i = 0; i < all.size(); i++) {
-                sb.append(i + 1).append(". ").append(all.get(i)).append("\n\n");
-            }
-        }
-        new AlertDialog.Builder(this)
-                .setTitle("🧠 My memories (" + all.size() + ")")
-                .setMessage(sb.toString().trim())
-                .setPositiveButton("OK", null)
-                .setNegativeButton("Forget all", (d, w) ->
-                        new AlertDialog.Builder(this)
-                                .setTitle("Sure?")
-                                .setMessage("All memories will be erased.")
-                                .setPositiveButton("Yes, forget", (d2, w2) -> {
-                                    Memory.clear(this);
-                                    toast("Forgot everything.");
-                                })
-                                .setNegativeButton("Cancel", null)
-                                .show())
-                .show();
-    }
-
-    // ---------- SOUL ----------
-
-    private void showSoul() {
-        new AlertDialog.Builder(this)
-                .setTitle("SOUL — Who is Ayesha")
-                .setMessage("Stubborn, caring, loyal.\n\n"
-                        + "Listens to Boss, answers from the heart — "
-                        + "but calls out wrong things too: "
-                        + "\"Mujahid, you are wrong here.\"\n\n"
-                        + "Understands every mood, every language, every feeling.")
-                .setPositiveButton("OK", null)
-                .show();
-    }
+    // ---------- 🧠 Yaadein + SOUL: v86 se InfoActivity ke pages ----------
+    // (showMemories/showSoul ke purane dialog khatam — pages wahi data
+    //  InfoActivity me dikhate hain: kind="memories" / kind="soul".)
 
     private void toast(String s) {
         runOnUiThread(() ->

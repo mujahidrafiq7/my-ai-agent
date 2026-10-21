@@ -82,6 +82,11 @@ public class SettingsActivity extends Activity {
         return t;
     }
 
+    /** v86 glass: rang ko transparent bana do (sheesha look). */
+    private static int glassOf(int c) {
+        return Color.argb(115, Color.red(c), Color.green(c), Color.blue(c));
+    }
+
     private int dp(int v) {
         return (int) (v * getResources().getDisplayMetrics().density);
     }
@@ -105,7 +110,8 @@ public class SettingsActivity extends Activity {
         card.setClickable(true);
         card.setFocusable(true);
         GradientDrawable gd = new GradientDrawable();
-        gd.setColor(CARD);
+        gd.setColor(glassOf(CARD));
+        gd.setStroke(dp(1), Color.argb(70, 255, 255, 255));
         gd.setCornerRadius(dp(28));
         card.setBackground(gd);
         int p = dp(16);
@@ -144,7 +150,8 @@ public class SettingsActivity extends Activity {
         in.setHintTextColor(HINT);
         in.setTextColor(TXT);
         GradientDrawable gd = new GradientDrawable();
-        gd.setColor(BG);
+        gd.setColor(glassOf(BG));
+        gd.setStroke(dp(1), Color.argb(50, 255, 255, 255));
         gd.setCornerRadius(dp(20));
         in.setBackground(gd);
         int pad = dp(12);
@@ -162,7 +169,8 @@ public class SettingsActivity extends Activity {
         b.setText(s);
         b.setTextColor(TXT);
         GradientDrawable gd = new GradientDrawable();
-        gd.setColor(CARD);
+        gd.setColor(glassOf(CARD));
+        gd.setStroke(dp(1), Color.argb(70, 255, 255, 255));
         gd.setCornerRadius(dp(28));
         b.setBackground(gd);
         int p = dp(14);

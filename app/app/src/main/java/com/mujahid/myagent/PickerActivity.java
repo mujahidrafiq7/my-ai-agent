@@ -50,9 +50,9 @@ public class PickerActivity extends Activity {
         back.setLetterSpacing(0.08f);
         back.setPadding(dp(26), dp(11), dp(26), dp(11));
         GradientDrawable bb = new GradientDrawable();
-        bb.setColor(card);
+        bb.setColor(Color.argb(115, Color.red(card), Color.green(card), Color.blue(card)));
         bb.setCornerRadius(dp(30));
-        bb.setStroke(dp(2), accent);
+        bb.setStroke(dp(1), Color.argb(90, 255, 255, 255));
         back.setBackground(bb);
         back.setOnClickListener(v -> finish());
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(
@@ -310,7 +310,14 @@ public class PickerActivity extends Activity {
 
     private GradientDrawable box(int color, int radiusDp) {
         GradientDrawable g = new GradientDrawable();
-        g.setColor(color);
+        if (color == accent) {
+            g.setColor(color); // Save wala box — bhara hua accent hi rahe
+        } else {
+            // v86 glass: transparent bhara + halki safed kinari
+            g.setColor(Color.argb(115,
+                    Color.red(color), Color.green(color), Color.blue(color)));
+            g.setStroke(dp(1), Color.argb(70, 255, 255, 255));
+        }
         g.setCornerRadius(dp(radiusDp));
         return g;
     }

@@ -206,7 +206,7 @@
             android:text="🖥 Screen Share: OFF"
             android:textSize="12sp"
             android:textColor="#2E9BFF"
-            android:background="#141B28" />
+            android:background="@drawable/pill_bg" />
 
     </RelativeLayout>
 
@@ -258,63 +258,18 @@
                 android:textStyle="bold"
                 android:textColor="#00E5FF" />
         </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/card_bg"
-            android:orientation="vertical"
-            android:padding="14dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="SYSTEM"
-                    android:textSize="11sp"
-                    android:textColor="#788C9B" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Running"
-                    android:textSize="11sp"
-                    android:textColor="#00FF9D" />
-            </LinearLayout>
-            <TextView
-                android:id="@+id/sysVoiceState"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="● Voice ready"
-                android:textSize="14sp"
-                android:textColor="#FFFFFF" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="● Memory active"
-                android:textSize="14sp"
-                android:textColor="#FFFFFF" />
-        </LinearLayout>
     </LinearLayout>
 
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#23374B" />
 
     <!-- Bottom nav -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:background="@drawable/nav_bg"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="10dp"
         android:paddingTop="10dp"
         android:paddingBottom="14dp">
 
