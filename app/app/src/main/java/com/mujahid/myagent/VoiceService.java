@@ -75,6 +75,13 @@ public class VoiceService extends Service {
     private boolean recording = false;
     private boolean busy = false;
     private boolean conversationOn = false;
+    // v89: Live session ki hifazat — resumption handle, reconnect ginti,
+    // aur generation (purane session ke callbacks ko ignore karne ke liye)
+    private String liveResumeHandle;
+    private int liveGen = 0;
+    private int liveRetries = 0;
+    private volatile boolean liveWanted = false;
+    private long lastGoAwayRestart = 0;
     private final List<ChatClient.Message> history = ChatClient.newHistory();
     /** v38 Stage 3: Live conversation engine (null = purana rasta). */
     private LiveTalk liveTalk;
@@ -113,6 +120,7 @@ public class VoiceService extends Service {
     @Override
     public void onDestroy() {
         conversationOn = false;
+        liveWanted = false; // v89
         try { liveCmdExec.shutdownNow(); } catch (Exception ignored) { } // v73
         hideEdgeLight();
         TtsClient.stop(); // mic band = poori khamoshi, kuch na bole
@@ -300,7 +308,12 @@ public class VoiceService extends Service {
     /** Stage 3 (v38): mic button → seedha Gemini Live conversation. */
     private void startLiveMode() {
         emitStatus("connecting live...");
+        liveWanted = true;
+        final int gen = ++liveGen;
+        // v89: purana (toota hua) session band — naya saaf shuru hoga
+        try { if (liveTalk != null) liveTalk.stop(); } catch (Exception ignored) { }
         liveTalk = new LiveTalk();
+        liveTalk.setResumeHandle(liveResumeHandle); // v89: context wala rasta
         // v76: Ayesha ke apne TOOLS — model khud call karegi, kaam worker pe
         // hoga, natija tool-response ki surat me seedha model ko milega.
         liveTalk.setToolHandler((id, name, args) -> {
@@ -318,6 +331,8 @@ public class VoiceService extends Service {
         });
         liveTalk.start(this, new LiveTalk.Listener() {
             @Override public void onReady() {
+                if (gen != liveGen) return; // purana session — ignore
+                liveRetries = 0; // v89: jud gaya — reconnect ginti saaf
                 emitStatus("live");
                 startStreamPump(); // v70: streaming engine
             }
@@ -339,12 +354,41 @@ public class VoiceService extends Service {
                 }
             }
             @Override public void onError(String why) {
+                if (gen != liveGen) return; // purana session — ignore
+                // v89: Live toote (15-min limit ya network) to KHAMOSHI se
+                // dobara Live connect karo — diary context setup me khud
+                // shamil hota hai, aur handle ho to server wala context
+                // bhi wapas. Purana rasta sirf aakhri hal (4 koshish baad).
+                if (conversationOn && liveWanted && liveRetries < 4) {
+                    liveRetries++;
+                    Diag.event("live silent reconnect #" + liveRetries
+                            + " (" + why + ")");
+                    long delay = 1200L * liveRetries;
+                    mainHandler.postDelayed(() -> {
+                        if (gen == liveGen && conversationOn && liveWanted)
+                            startLiveMode();
+                    }, delay);
+                    return;
+                }
                 // Live fail → purane raste pe wapas, guftagu jaari
                 Diag.event("live fallback: " + why);
                 toast("Live: " + why + " — purana rasta.");
                 stopStreamPump(); // v70
                 liveTalk = null;
                 if (conversationOn) startRecordingWithVad();
+            }
+            @Override public void onResumeHandle(String h) {
+                if (gen == liveGen) liveResumeHandle = h;
+            }
+            @Override public void onGoAway() {
+                if (gen != liveGen || !conversationOn || !liveWanted) return;
+                // v89: server pehle ishara deta hai — katne se pehle hi
+                // naya session (handle ke sath), baat nahi kategi
+                long now = System.currentTimeMillis();
+                if (now - lastGoAwayRestart < 20000) return; // loop hifazat
+                lastGoAwayRestart = now;
+                Diag.event("live goAway — seamless reconnect (handle ke sath)");
+                startLiveMode();
             }
         });
     }
@@ -639,6 +683,7 @@ public class VoiceService extends Service {
 
     private void stopConversation() {
         conversationOn = false;
+        liveWanted = false; // v89
         stopStreamPump(); // v70
         hideEdgeLight();
         Diag.setErrorListener(null); // v41: guftagu khatam — khamosh

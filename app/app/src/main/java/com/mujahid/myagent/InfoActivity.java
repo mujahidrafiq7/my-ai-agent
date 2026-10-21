@@ -10,6 +10,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONObject;
+
 import java.util.List;
 
 /**
@@ -22,6 +24,7 @@ public class InfoActivity extends Activity {
     private String kind = "soul";
     private int bg, card, txt, hintC, accent;
     private LinearLayout content;
+    private LinearLayout reminderBox; // v89
 
     @Override
     protected void onCreate(Bundle b) {
@@ -147,6 +150,12 @@ public class InfoActivity extends Activity {
         }
         addCard(sb.toString().trim());
 
+        // v89: Reminders — har reminder ke sath Delete button
+        reminderBox = new LinearLayout(this);
+        reminderBox.setOrientation(LinearLayout.VERTICAL);
+        content.addView(reminderBox);
+        fillReminders();
+
         String turns = LiveContext.recentTurnsBlock(this);
         if (turns != null && !turns.isEmpty()) {
             int nl = turns.indexOf('\n');
@@ -154,6 +163,58 @@ public class InfoActivity extends Activity {
             if (turns.length() > 500)
                 turns = turns.substring(turns.length() - 500);
             addCard("Recent conversation:\n" + turns.trim());
+        }
+    }
+
+    /** v89: pending reminders ki list — Delete tap = alarm cancel + remove. */
+    private void fillReminders() {
+        if (reminderBox == null) return;
+        reminderBox.removeAllViews();
+        List<JSONObject> es = Reminder.entries(this);
+        if (es.isEmpty()) return;
+        TextView head = new TextView(this);
+        head.setText("Reminders");
+        head.setTextColor(txt);
+        head.setTextSize(18);
+        head.setTypeface(null, android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams hh = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        hh.topMargin = dp(4);
+        hh.bottomMargin = dp(10);
+        reminderBox.addView(head, hh);
+        for (final JSONObject o : es) {
+            final long id = o.optLong("id", -1);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(18), dp(12), dp(10), dp(12));
+            row.setBackground(glassBox(18));
+            TextView t = new TextView(this);
+            t.setText(Reminder.timeText(o.optLong("at", 0)) + " — "
+                    + o.optString("msg", ""));
+            t.setTextColor(txt);
+            t.setTextSize(15);
+            row.addView(t, new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            TextView del = new TextView(this);
+            del.setText("Delete");
+            del.setTextColor(Color.rgb(255, 120, 120));
+            del.setTextSize(15);
+            del.setTypeface(null, android.graphics.Typeface.BOLD);
+            del.setPadding(dp(14), dp(8), dp(14), dp(8));
+            del.setOnClickListener(v -> {
+                Reminder.deleteById(this, id);
+                Toast.makeText(this, "Reminder deleted",
+                        Toast.LENGTH_SHORT).show();
+                fillReminders();
+            });
+            row.addView(del);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            rp.bottomMargin = dp(12);
+            reminderBox.addView(row, rp);
         }
     }
 
