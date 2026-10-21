@@ -167,6 +167,24 @@ public class LiveTools {
                     }
                 }
 
+                case "list_reminders":
+                    return Reminder.listText(ctx);
+
+                case "delete_reminder": {
+                    String gone = Reminder.deleteByMatch(
+                            ctx, a.optString("match", ""));
+                    return gone != null
+                            ? "Reminder hata diya boss: " + gone
+                            : "Aisa koi reminder nahi mila boss.";
+                }
+
+                case "clear_all_reminders": {
+                    int nRem = Reminder.clearAll(ctx);
+                    return nRem > 0
+                            ? nRem + " reminders delete kar diye boss."
+                            : "Koi reminder tha hi nahi boss.";
+                }
+
                 case "wait_seconds": {
                     int sec = a.optInt("seconds", 5);
                     if (sec < 1) sec = 1;

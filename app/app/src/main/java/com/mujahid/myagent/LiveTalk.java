@@ -39,6 +39,12 @@ public class LiveTalk {
         void onInputText(String partial);
         void onUserTurn(String fullText);
         void onError(String why);
+        /** v89: session resumption ka handle — reconnect pe context
+         *  server ki taraf se hi mehfooz rehta hai. */
+        default void onResumeHandle(String h) { }
+        /** v89: server ka pehle-waqt ishara (session limit qareeb) —
+         *  seamless reconnect ka mauqa. */
+        default void onGoAway() { }
     }
 
     /** v76: Model ke TOOLS — wo KHUD call karegi, natija seedha USI ko milega.
@@ -49,6 +55,11 @@ public class LiveTalk {
     }
 
     private volatile ToolHandler toolHandler;
+
+    /** v89: pichle session ka resumption handle (server deta hai). */
+    private volatile String resumeHandle;
+
+    public void setResumeHandle(String h) { resumeHandle = h; }
 
     public void setToolHandler(ToolHandler h) { toolHandler = h; }
 
@@ -349,9 +360,25 @@ public class LiveTalk {
             if (o.has("toolCallCancellation")) {
                 return; // purani call radd — khamoshi se aage
             }
+            if (o.has("sessionResumptionUpdate")) {
+                // v89: server naya handle deta hai — sambhal lo, aur
+                // VoiceService ko bhi de do (reconnect pe kaam ayega)
+                try {
+                    JSONObject ru = o.getJSONObject("sessionResumptionUpdate");
+                    if (ru.optBoolean("resumable", false)) {
+                        final String h = ru.optString("newHandle", "");
+                        if (!h.isEmpty()) {
+                            resumeHandle = h;
+                            safe(() -> listener.onResumeHandle(h));
+                        }
+                    }
+                } catch (Exception ignored) { }
+            }
             if (o.has("goAway")) {
                 // v50: ye NORMAL end hai (server ka waqt poora) — Diag me nishan rahe
                 Diag.event("live goAway — server ka waqt poora (normal end), reconnect ayega");
+                // v89: katne se pehle hi seamless reconnect ka ishara
+                safe(() -> listener.onGoAway());
             }
             // v50: anjaan server message — server ka error yahin chhupta hai
             // (goAway upar handle ho chuka — usay dobara mat gino)
@@ -549,6 +576,12 @@ public class LiveTalk {
                                                         "voiceName", voiceName)))))
                 .put("inputAudioTranscription", new JSONObject())
                 .put("outputAudioTranscription", new JSONObject())
+                // v89: session resumption ON — 15-minute wali limit pe
+                // naya connection PURANI baat ke sath judta hai
+                .put("sessionResumption", resumeHandle == null
+                        || resumeHandle.isEmpty()
+                        ? new JSONObject()
+                        : new JSONObject().put("handle", resumeHandle))
                 .put("tools", toolsJson());
         return new JSONObject().put("setup", setup).toString();
     }
@@ -648,6 +681,23 @@ public class LiveTalk {
                 + "finish typing its reply before you read it. Max 60.",
                 props("seconds", "NUMBER", "Seconds to wait (1-60)"),
                 "seconds"));
+        decls.put(decl("list_reminders",
+                "List all pending reminders with their times. Use when he "
+                + "asks what reminders exist, or before deleting one.",
+                new JSONObject()));
+        decls.put(decl("delete_reminder",
+                "Delete ONE pending reminder — it is removed from storage "
+                + "AND its scheduled alarm is cancelled. Match by the "
+                + "reminder's words or its time, e.g. '5 baje wala' or "
+                + "part of its message.",
+                props("match", "STRING",
+                        "Words or time identifying the reminder"),
+                "match"));
+        decls.put(decl("clear_all_reminders",
+                "Delete ALL pending reminders and cancel all their "
+                + "alarms. Use only when he clearly says delete/remove "
+                + "all reminders.",
+                new JSONObject()));
         return new JSONArray().put(new JSONObject()
                 .put("functionDeclarations", decls));
     }
