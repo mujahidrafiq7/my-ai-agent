@@ -177,41 +177,12 @@ public class SettingsActivity extends Activity {
         return b;
     }
 
-    /** v51 "Rang": theme chuno — foran lag jayega. */
-    private void showThemeDialog(TextView valueView) {
-        new android.app.AlertDialog.Builder(this)
-                .setTitle("Theme")
-                .setSingleChoiceItems(Themes.NAMES, Themes.index(this),
-                        (d, which) -> {
-                            Themes.set(this, which);
-                            valueView.setText(Themes.NAMES[which]);
-                            d.dismiss();
-                            recreate(); // naye rangon se dobara banao
-                        })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
+    // v84: Theme ab dialog nahi — PickerActivity ke page pe (kind="theme").
+    // (Save Themes.set se hota hai; Settings onResume me naye rangon se recreate hoti hai.)
 
     /** "Keys" — sari saved keys ek dialog me dikhao. */
-    /** v40: Weather API key dalo — key sirf is phone me rehti hai. */
-    private void showWeatherKeyDialog(TextView statusView) {
-        final android.widget.EditText et = new android.widget.EditText(this);
-        et.setHint("OpenWeatherMap API key");
-        et.setText(LiveContext.weatherKey(this));
-        et.setTextColor(TXT);
-        int p = (int) (16 * getResources().getDisplayMetrics().density);
-        et.setPadding(p, p, p, p);
-        new android.app.AlertDialog.Builder(this)
-                .setTitle("Weather API key")
-                .setView(et)
-                .setPositiveButton("Save", (d, w) -> {
-                    LiveContext.setWeatherKey(this, et.getText().toString());
-                    statusView.setText(
-                            LiveContext.weatherKey(this).isEmpty() ? "(not set)" : "(set ✓)");
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
+    // v84: Weather key ab dialog nahi — PickerActivity ke page pe
+    // (kind="weather"; key LiveContext.setWeatherKey se waisi hi save hoti hai).
 
     /** v54 "Orb": Floating Orb on/off — doosri apps ke upar chhota button. */
     public static boolean isOrbOn(Context ctx) {
@@ -352,48 +323,39 @@ public class SettingsActivity extends Activity {
                 + "reply to reply, never stick to only one.";
     }
 
-    /** v53: Voice chuno — agli Live call se nayi awaz. */
-    private void showVoiceDialog(TextView valueView) {
-        new android.app.AlertDialog.Builder(this)
-                .setTitle("Voice")
-                .setSingleChoiceItems(VOICE_LABELS, voiceIdx(this),
-                        (d, which) -> {
-                            getSharedPreferences("app_settings", MODE_PRIVATE)
-                                    .edit().putInt("voice_idx", which).apply();
-                            valueView.setText(VOICE_LABELS[which]);
-                            d.dismiss();
-                        })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
+    // v84: Voice ab dialog nahi — PickerActivity ke page pe (kind="voice").
 
     /** v53: Personality chuno — agli baat se naya andaz. */
-    // v83: Personality ab dialog nahi — us ka apna poora page hai
-    // (PersonalityActivity). Settings ka label onResume me taza hota hai.
+    // v83/v84: pickers ab chhote dialog nahi — sab ka EK hi design ka poora
+    // page hai (PickerActivity). Settings ke labels onResume me taza hote hain.
     private TextView persValue;
+    private TextView voiceValue;
+    private TextView themeValue;
+    private TextView emoValue;
+    private TextView wxStatus;
+    private int shownThemeIdx = -1;
+
+    private void openPicker(String kind) {
+        startActivity(new Intent(this, PickerActivity.class)
+                .putExtra("kind", kind));
+    }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (persValue != null) {
-            persValue.setText(PERSONALITIES[personalityIdx(this)]);
+        if (persValue != null) persValue.setText(PERSONALITIES[personalityIdx(this)]);
+        if (voiceValue != null) voiceValue.setText(VOICE_LABELS[voiceIdx(this)]);
+        if (themeValue != null) themeValue.setText(Themes.NAMES[Themes.index(this)]);
+        if (emoValue != null) emoValue.setText(EMOTIONS[emotionIdx(this)]);
+        if (wxStatus != null) wxStatus.setText(
+                LiveContext.weatherKey(this).isEmpty() ? "(not set)" : "(set ✓)");
+        if (shownThemeIdx >= 0 && Themes.index(this) != shownThemeIdx) {
+            shownThemeIdx = Themes.index(this);
+            recreate(); // naye theme rangon se dobara banao (purane dialog jaisa)
         }
     }
 
-    /** v56: Emotion chuno — agli baat se wahi mood. */
-    private void showEmotionDialog(TextView valueView) {
-        new android.app.AlertDialog.Builder(this)
-                .setTitle("Emotion")
-                .setSingleChoiceItems(EMOTIONS, emotionIdx(this),
-                        (d, which) -> {
-                            getSharedPreferences("app_settings", MODE_PRIVATE)
-                                    .edit().putInt("emotion_idx", which).apply();
-                            valueView.setText(EMOTIONS[which]);
-                            d.dismiss();
-                        })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
+    /** v56: Emotion chuno — agli baat se wahi mood. (v84: ab page pe.) */
 
     /** v53: Keys box ka status — kitni keys set hain. */
     private String keyStatusText() {
@@ -430,9 +392,10 @@ public class SettingsActivity extends Activity {
         root.addView(lightCard);
 
         LinearLayout themeCard = settingCard("Theme", null);
-        TextView themeValue = valueLabel(Themes.NAMES[Themes.index(this)]);
+        themeValue = valueLabel(Themes.NAMES[Themes.index(this)]);
+        shownThemeIdx = Themes.index(this);
         themeCard.addView(themeValue);
-        themeCard.setOnClickListener(v -> showThemeDialog(themeValue));
+        themeCard.setOnClickListener(v -> openPicker("theme"));
         root.addView(themeCard);
 
         // ===== AI & VOICE =====
@@ -446,22 +409,21 @@ public class SettingsActivity extends Activity {
         root.addView(liveCard);
 
         LinearLayout voiceCard = settingCard("Voice", null);
-        TextView voiceValue = valueLabel(VOICE_LABELS[voiceIdx(this)]);
+        voiceValue = valueLabel(VOICE_LABELS[voiceIdx(this)]);
         voiceCard.addView(voiceValue);
-        voiceCard.setOnClickListener(v -> showVoiceDialog(voiceValue));
+        voiceCard.setOnClickListener(v -> openPicker("voice"));
         root.addView(voiceCard);
 
         LinearLayout persCard = settingCard("Personality", null);
         persValue = valueLabel(PERSONALITIES[personalityIdx(this)]);
         persCard.addView(persValue);
-        persCard.setOnClickListener(v -> startActivity(
-                new Intent(this, PersonalityActivity.class)));
+        persCard.setOnClickListener(v -> openPicker("personality"));
         root.addView(persCard);
 
         LinearLayout emoCard = settingCard("Emotion", null);
-        TextView emoValue = valueLabel(EMOTIONS[emotionIdx(this)]);
+        emoValue = valueLabel(EMOTIONS[emotionIdx(this)]);
         emoCard.addView(emoValue);
-        emoCard.setOnClickListener(v -> showEmotionDialog(emoValue));
+        emoCard.setOnClickListener(v -> openPicker("emotion"));
         root.addView(emoCard);
 
         LinearLayout orbCard = settingCard("Floating Orb", "button over other apps");
@@ -517,10 +479,10 @@ public class SettingsActivity extends Activity {
         root.addView(sectionHeader("KEYS & DATA"));
 
         LinearLayout wxCard = settingCard("Weather API key", null);
-        TextView wxStatus = valueLabel(
+        wxStatus = valueLabel(
                 LiveContext.weatherKey(this).isEmpty() ? "(not set)" : "(set \u2713)");
         wxCard.addView(wxStatus);
-        wxCard.setOnClickListener(v -> showWeatherKeyDialog(wxStatus));
+        wxCard.setOnClickListener(v -> openPicker("weather"));
         root.addView(wxCard);
 
         LinearLayout keyCard = settingCard("Keys", "tap to open");
