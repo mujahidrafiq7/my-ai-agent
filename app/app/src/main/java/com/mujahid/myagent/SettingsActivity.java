@@ -446,7 +446,7 @@ public class SettingsActivity extends Activity {
                     startActivity(i);
                     orbSwitch.setChecked(false);
                     Toast.makeText(this,
-                            "Pehle 'Display over other apps' allow karo, phir dobara ON karo.",
+                            "First allow 'Display over other apps', then turn it ON again.",
                             Toast.LENGTH_LONG).show();
                     return;
                 }
@@ -475,7 +475,7 @@ public class SettingsActivity extends Activity {
         // ===== VOICE ID (v57 pehla qadam) =====
         root.addView(sectionHeader("VOICE ID"));
 
-        LinearLayout vidCard = settingCard("Voice ID", "tumhari awaz ka naqsha");
+        LinearLayout vidCard = settingCard("Voice ID", "your voiceprint");
         TextView vidValue = valueLabel(
                 VoicePrint.isEnrolled(this) ? "Enrolled ✓" : "Not enrolled");
         vidCard.addView(vidValue);

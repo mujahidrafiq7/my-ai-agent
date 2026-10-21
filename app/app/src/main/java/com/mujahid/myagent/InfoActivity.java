@@ -139,9 +139,9 @@ public class InfoActivity extends Activity {
     private void buildBrief() {
         List<String> tasks = TaskStore.list(this);
         StringBuilder sb = new StringBuilder();
-        sb.append("Baqi kaam (pending tasks):\n");
+        sb.append("Pending tasks:\n");
         if (tasks.isEmpty()) {
-            sb.append("• Koi baqi kaam nahi.");
+            sb.append("• No pending tasks.");
         } else {
             for (String t : tasks) sb.append("• ").append(t).append("\n");
         }
@@ -153,7 +153,7 @@ public class InfoActivity extends Activity {
             if (nl > 0) turns = turns.substring(nl + 1);
             if (turns.length() > 500)
                 turns = turns.substring(turns.length() - 500);
-            addCard("Aakhri guftagu:\n" + turns.trim());
+            addCard("Recent conversation:\n" + turns.trim());
         }
     }
 
@@ -186,7 +186,7 @@ public class InfoActivity extends Activity {
     private String title() {
         switch (kind) {
             case "memories": return "My Memories";
-            case "brief": return "Aaj Ka Brief";
+            case "brief": return "Today's Brief";
             default: return "SOUL";
         }
     }

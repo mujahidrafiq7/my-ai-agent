@@ -98,7 +98,7 @@ public class LiveContext {
             SimpleDateFormat f = new SimpleDateFormat(
                     "EEEE, d MMMM yyyy, h:mm a", Locale.ENGLISH);
             f.setTimeZone(java.util.TimeZone.getTimeZone("Asia/Karachi"));
-            return "Aaj " + f.format(new Date()) + " hai (Pakistan time).";
+            return "Today is " + f.format(new Date()) + " (Pakistan time).";
         } catch (Exception e) {
             return "";
         }

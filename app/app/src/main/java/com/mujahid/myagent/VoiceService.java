@@ -520,7 +520,7 @@ public class VoiceService extends Service {
             android.content.Intent si = new android.content.Intent(
                     this, MainActivity.class);
             si.putExtra(ScreenShare.EXTRA_AUTO_SHARE, true);
-            ForegroundOpen.open(this, si, "Screen Share ON karo");
+            ForegroundOpen.open(this, si, "Turn ON Screen Share");
             if (liveTalk != null) liveTalk.sayText("Front page khol rahi hun boss — "
                     + "wahan screen share ki permission allow karna, "
                     + "phir main tumhari screen dekh sakungi!");
@@ -593,7 +593,7 @@ public class VoiceService extends Service {
                 liveTalk.sayText(cmd.reply);
             if (cmd.intent != null) {
                 // v49: launch tryHandle→fire() me ho chuka (single path) — yahan sirf manual backup button
-                updateNotification("↗ " + cmd.reply, cmd.intent, "Kholo");
+                updateNotification("↗ " + cmd.reply, cmd.intent, "Open");
             }
             return;
         }
@@ -785,7 +785,7 @@ public class VoiceService extends Service {
                     android.content.Intent si = new android.content.Intent(
                             VoiceService.this, MainActivity.class);
                     si.putExtra(ScreenShare.EXTRA_AUTO_SHARE, true);
-                    ForegroundOpen.open(VoiceService.this, si, "Screen Share ON karo");
+                    ForegroundOpen.open(VoiceService.this, si, "Turn ON Screen Share");
                     final String r1 = "Front page khol rahi hun boss — wahan screen share "
                             + "ki permission allow karna, phir main tumhari screen dekh sakungi!";
                     history.add(new ChatClient.Message("user", said));
@@ -847,7 +847,7 @@ public class VoiceService extends Service {
                     history.add(new ChatClient.Message("model", cmd.reply));
                     if (cmd.intent != null) {
                         // v49: launch tryHandle→fire() me ho chuka (single path) — yahan sirf manual backup button
-                        updateNotification("↗ " + cmd.reply, cmd.intent, "Kholo");
+                        updateNotification("↗ " + cmd.reply, cmd.intent, "Open");
                     }
                     speakAndContinue(cmd.reply, geminiKeys);
                     return;

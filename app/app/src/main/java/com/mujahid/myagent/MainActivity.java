@@ -101,7 +101,7 @@ public class MainActivity extends Activity {
         // v60: service jab WAQAI start ho (async race fix) — tabhi button ON + elan.
         ScreenShare.setStateListener(isOn -> runOnUiThread(() -> {
             syncShareBtn();
-            if (isOn) toast("Screen share ON — ab 'screen pe kya hai' pucho!");
+            if (isOn) toast("Screen share is ON");
         }));
         // Voice se "screen share on karo" → auto permission dialog
         if (getIntent() != null && getIntent().getBooleanExtra(
@@ -144,7 +144,7 @@ public class MainActivity extends Activity {
             // is liye yahan sirf deny pe wahi kaho; ON ka elan listener karega.
             ScreenShare.onPermissionResult(this, resultCode, data);
             if (resultCode == Activity.RESULT_OK) {
-                toast("Screen share start ho raha hai...");
+                toast("Starting screen share...");
             } else {
                 toast("Screen share ke liye permission chahiye thi.");
             }

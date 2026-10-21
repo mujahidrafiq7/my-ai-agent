@@ -56,7 +56,7 @@ public class HistoryActivity extends Activity {
 
         List<ChatHistory.Entry> entries = ChatHistory.load(this);
         if (entries.isEmpty()) {
-            log.setText("Abhi koi baat save nahi hui.\nChat me baat karo — yahan yaad rahegi.");
+            log.setText("No conversations saved yet.\nTalk in Chat — it will be remembered here.");
             log.setTextColor(HINT);
         } else {
             StringBuilder sb = new StringBuilder();
