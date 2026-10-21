@@ -272,6 +272,31 @@ public class VoiceService extends Service {
         else startRecordingWithVad();
     }
 
+    /** v88: ye tools screen badalte hain — in ke baad instant frame. */
+    private static boolean isActionTool(String n) {
+        return n.equals("open_app") || n.equals("open_whatsapp_chat")
+                || n.equals("send_whatsapp_message")
+                || n.equals("tap_screen") || n.equals("tap_text")
+                || n.equals("long_press_screen")
+                || n.equals("scroll_screen") || n.equals("type_text")
+                || n.equals("press_button") || n.equals("text_action")
+                || n.equals("search_youtube");
+    }
+
+    /** v88 speed: 300ms baad taaza screen frame — pump ke 1-sec cycle
+     *  ka intezar khatam, model ko natija foran nazar aata hai. */
+    private void pushInstantFrame(final LiveTalk lt) {
+        new Thread(() -> {
+            try { Thread.sleep(300); } catch (Exception ignored) { }
+            try {
+                if (lt != null && ScreenShare.isOn()) {
+                    String b64 = AyeshaController.getScreenImageBase64();
+                    if (b64 != null) lt.sendVideoFrame(b64);
+                }
+            } catch (Exception ignored) { }
+        }).start();
+    }
+
     /** Stage 3 (v38): mic button → seedha Gemini Live conversation. */
     private void startLiveMode() {
         emitStatus("connecting live...");
@@ -285,6 +310,9 @@ public class VoiceService extends Service {
                     String res = LiveTools.execute(VoiceService.this, name, args);
                     Diag.event("tool " + name + " -> " + res);
                     if (lt != null) lt.sendToolResponse(id, name, res);
+                    // v88 speed: action ke baad agle 1-sec frame ka
+                    // intezar nahi — 300ms me taaza frame foran bhejo
+                    if (isActionTool(name)) pushInstantFrame(lt);
                 });
             } catch (Exception ignored) { }
         });

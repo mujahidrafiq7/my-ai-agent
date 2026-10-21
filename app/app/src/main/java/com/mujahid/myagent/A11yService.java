@@ -165,6 +165,7 @@ public class A11yService extends AccessibilityService {
     protected void onServiceConnected() {
         instance = this;
         Diag.event("a11y instance BOUND");
+        A11yWatchdog.schedule(this); // v88: chowkidar bhi jagta rahe
     }
 
     @Override
@@ -188,6 +189,7 @@ public class A11yService extends AccessibilityService {
     public boolean onUnbind(Intent intent) {
         if (instance == this) instance = null;
         Diag.event("a11y instance UNBOUND");
+        A11yWatchdog.recordDrop(this); // v88: drop ka waqt save
         return super.onUnbind(intent);
     }
 
@@ -195,6 +197,7 @@ public class A11yService extends AccessibilityService {
     public void onDestroy() {
         if (instance == this) instance = null;
         Diag.event("a11y instance DESTROYED");
+        A11yWatchdog.recordDrop(this); // v88: drop ka waqt save
         super.onDestroy();
     }
 
@@ -252,7 +255,7 @@ public class A11yService extends AccessibilityService {
                 ok |= target.performAction(up
                         ? AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
                         : AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
-                try { Thread.sleep(350); } catch (InterruptedException ignored) { }
+                try { Thread.sleep(200); } catch (InterruptedException ignored) { }
             }
             return ok;
         } catch (Exception e) {
