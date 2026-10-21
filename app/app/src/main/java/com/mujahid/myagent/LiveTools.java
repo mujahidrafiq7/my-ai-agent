@@ -149,6 +149,15 @@ public class LiveTools {
                     }
                 }
 
+                case "wait_seconds": {
+                    int sec = a.optInt("seconds", 5);
+                    if (sec < 1) sec = 1;
+                    if (sec > 60) sec = 60;
+                    Thread.sleep(sec * 1000L);
+                    return sec + " second ruk gayi — ab screen feed pe dekho "
+                            + "aur wahan ka jawab parho.";
+                }
+
                 default:
                     return "Ye tool mojood nahi: " + name;
             }

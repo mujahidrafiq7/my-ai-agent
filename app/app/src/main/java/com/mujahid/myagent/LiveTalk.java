@@ -641,6 +641,13 @@ public class LiveTalk {
                 + "Call when a task from [BAQI KAAM] is finished.",
                 props("task", "STRING", "The task text (or part of it) to complete"),
                 "task"));
+        decls.put(decl("wait_seconds",
+                "Wait quietly for some seconds, then look at the screen feed "
+                + "again. Use this after sending a message inside another app "
+                + "(ChatGPT, Gemini, Muse, any chat) so the other side can "
+                + "finish typing its reply before you read it. Max 60.",
+                props("seconds", "NUMBER", "Seconds to wait (1-60)"),
+                "seconds"));
         return new JSONArray().put(new JSONObject()
                 .put("functionDeclarations", decls));
     }
