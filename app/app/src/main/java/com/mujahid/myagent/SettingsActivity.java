@@ -36,8 +36,6 @@ import java.util.List;
 /** Settings: 10 Gemini keys (alag-alag Gmail) + Groq key. Bina rebuild ke. */
 public class SettingsActivity extends Activity {
 
-    private final List<EditText> keyInputs = new ArrayList<>();
-    private EditText groqInput;
 
     /** Neon lighting on/off — VoiceService + home screen dono parhte hain. */
     public static boolean isLightingOn(Context ctx) {
@@ -333,6 +331,7 @@ public class SettingsActivity extends Activity {
     private TextView themeValue;
     private TextView emoValue;
     private TextView wxStatus;
+    private TextView keyStatus;
     private int shownThemeIdx = -1;
 
     private void openPicker(String kind) {
@@ -349,6 +348,7 @@ public class SettingsActivity extends Activity {
         if (emoValue != null) emoValue.setText(EMOTIONS[emotionIdx(this)]);
         if (wxStatus != null) wxStatus.setText(
                 LiveContext.weatherKey(this).isEmpty() ? "(not set)" : "(set ✓)");
+        if (keyStatus != null) keyStatus.setText(keyStatusText());
         if (shownThemeIdx >= 0 && Themes.index(this) != shownThemeIdx) {
             shownThemeIdx = Themes.index(this);
             recreate(); // naye theme rangon se dobara banao (purane dialog jaisa)
@@ -486,176 +486,15 @@ public class SettingsActivity extends Activity {
         root.addView(wxCard);
 
         LinearLayout keyCard = settingCard("Keys", "tap to open");
-        TextView keyStatus = valueLabel(keyStatusText());
+        keyStatus = valueLabel(keyStatusText());
         keyCard.addView(keyStatus);
+        keyCard.setOnClickListener(v -> openPicker("keys"));
         root.addView(keyCard);
-
-        LinearLayout keysBox = new LinearLayout(this);
-        keysBox.setOrientation(LinearLayout.VERTICAL);
-        GradientDrawable boxBg = new GradientDrawable();
-        boxBg.setColor(CARD);
-        boxBg.setCornerRadius(dp(28));
-        keysBox.setBackground(boxBg);
-        keysBox.setPadding(pad, pad, pad, pad);
-        LinearLayout.LayoutParams boxLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        boxLp.bottomMargin = dp(10);
-        keysBox.setLayoutParams(boxLp);
-        keysBox.setVisibility(View.GONE);
-        root.addView(keysBox);
-        keyCard.setOnClickListener(v -> {
-            boolean open = keysBox.getVisibility() != View.VISIBLE;
-            keysBox.setVisibility(open ? View.VISIBLE : View.GONE);
-            keyStatus.setText(open ? "(tap to close)" : keyStatusText());
-        });
-
-        TextView title = darkLabel("API Keys \u2014 stored only on your phone\n"
-                + "Make each key from a DIFFERENT Gmail (2 keys from one Gmail = one shared limit)",
-                14);
-        title.setTextColor(HINT);
-        title.setPadding(0, 0, 0, pad / 2);
-        keysBox.addView(title);
-
-        for (int i = 1; i <= Keys.MAX_KEYS; i++) {
-            TextView label = darkLabel("Gemini Key " + i + " (AI Studio)", 13);
-            label.setPadding(0, pad / 2, 0, dp(4));
-            keysBox.addView(label);
-
-            EditText in = darkInput("Paste key " + i + " here (can leave empty)");
-            in.setInputType(InputType.TYPE_CLASS_TEXT
-                    | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-            in.setText(Keys.geminiKeyAt(this, i));
-            keysBox.addView(in);
-            keyInputs.add(in);
-        }
-
-        TextView groqLabel = darkLabel("Groq API Key (backup brain + speech recognition)", 13);
-        groqLabel.setPadding(0, pad / 2, 0, dp(4));
-        keysBox.addView(groqLabel);
-
-        groqInput = darkInput("Paste Groq key here");
-        groqInput.setInputType(InputType.TYPE_CLASS_TEXT
-                | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        groqInput.setText(Keys.groqKey(this));
-        keysBox.addView(groqInput);
-
-        Button save = darkButton("Save");
-        keysBox.addView(save);
-
-        save.setOnClickListener(v -> {
-            List<String> keys = new ArrayList<>();
-            for (EditText in : keyInputs) keys.add(in.getText().toString());
-            Keys.save(this, keys, groqInput.getText().toString());
-            ChatClient.resetBreakers();
-            GeminiTts.resetBreaker();
-            int n = Keys.geminiKeys(this).size();
-            Toast.makeText(this, n + " Gemini key(s) saved.",
-                    Toast.LENGTH_SHORT).show();
-            finish();
-        });
 
         Button liveBtn = darkButton("Live API Test (experimental)");
         liveBtn.setOnClickListener(v ->
                 startActivity(new Intent(this, LiveTestActivity.class)));
         root.addView(liveBtn);
 
-        // ===== BACKUP =====
-        root.addView(sectionHeader("BACKUP"));
-
-        Button backupBtn = darkButton("\uD83D\uDCBE Backup Keys (to Downloads)");
-        root.addView(backupBtn);
-        backupBtn.setOnClickListener(v -> exportKeys());
-
-        Button restoreBtn = darkButton("\uD83D\uDCE5 Restore Keys from Backup");
-        root.addView(restoreBtn);
-        restoreBtn.setOnClickListener(v -> importKeys());
-
-        TextView warn = darkLabel("\u26A0\uFE0F The backup file contains your keys \u2014 never send it to anyone!", 12);
-        warn.setTextColor(HINT);
-        warn.setPadding(0, dp(4), 0, 0);
-        root.addView(warn);
-    }
-
-    /** Saari keys ek JSON file me — Downloads folder, sirf tumhare phone me. */
-    private void exportKeys() {
-        try {
-            JSONObject obj = new JSONObject();
-            obj.put("app", "my-agent-keys");
-            JSONArray arr = new JSONArray();
-            for (int i = 1; i <= Keys.MAX_KEYS; i++)
-                arr.put(Keys.geminiKeyAt(this, i));
-            obj.put("gemini_keys", arr);
-            obj.put("groq_key", Keys.groqKey(this));
-
-            String fileName = "my-agent-keys-backup.json";
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
-            values.put(MediaStore.Downloads.MIME_TYPE, "application/json");
-            values.put(MediaStore.Downloads.RELATIVE_PATH,
-                    Environment.DIRECTORY_DOWNLOADS);
-            Uri uri = getContentResolver().insert(
-                    MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-            if (uri == null) throw new Exception("Could not create file");
-            OutputStream os = getContentResolver().openOutputStream(uri);
-            os.write(obj.toString().getBytes("UTF-8"));
-            os.close();
-            Toast.makeText(this, "Backup done: Downloads/" + fileName,
-                    Toast.LENGTH_LONG).show();
-        } catch (Exception e) {
-            Toast.makeText(this, "Backup failed: " + e.getMessage(),
-                    Toast.LENGTH_LONG).show();
-        }
-    }
-
-    /** Backup file chuno — keys wapas aa jayengi. */
-    private void importKeys() {
-        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        i.setType("*/*");
-        i.addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(i, 200);
-    }
-
-    @Override
-    protected void onActivityResult(int req, int res, Intent data) {
-        super.onActivityResult(req, res, data);
-        if (req == 200 && res == RESULT_OK && data != null
-                && data.getData() != null) {
-            try {
-                InputStream in = getContentResolver()
-                        .openInputStream(data.getData());
-                ByteArrayOutputStream b = new ByteArrayOutputStream();
-                byte[] buf = new byte[4096];
-                int n;
-                while ((n = in.read(buf)) != -1) b.write(buf, 0, n);
-                in.close();
-                JSONObject obj = new JSONObject(
-                        new String(b.toByteArray(), "UTF-8"));
-
-                List<String> keys = new ArrayList<>();
-                JSONArray arr = obj.optJSONArray("gemini_keys");
-                if (arr != null) {
-                    for (int i = 0; i < arr.length() && i < Keys.MAX_KEYS; i++)
-                        keys.add(arr.optString(i, ""));
-                }
-                String groq = obj.optString("groq_key", "");
-                Keys.save(this, keys, groq);
-                ChatClient.resetBreakers();
-                GeminiTts.resetBreaker();
-
-                // Screen par bhi dikhao ke keys aa gayin
-                for (int i = 0; i < keyInputs.size(); i++) {
-                    String k = i < keys.size() ? keys.get(i) : "";
-                    keyInputs.get(i).setText(k);
-                }
-                groqInput.setText(groq);
-                Toast.makeText(this,
-                        Keys.geminiKeys(this).size() + " Gemini keys restored!",
-                        Toast.LENGTH_LONG).show();
-            } catch (Exception e) {
-                Toast.makeText(this, "Import failed: " + e.getMessage(),
-                        Toast.LENGTH_LONG).show();
-            }
-        }
     }
 }

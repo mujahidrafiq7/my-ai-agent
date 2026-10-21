@@ -41,14 +41,19 @@ public class PickerActivity extends Activity {
         root.setBackgroundColor(bg);
         root.setPadding(dp(20), dp(20), dp(20), dp(28));
 
-        // ---- Back box (professional) ----
+        // ---- Back box (v85: VIP — gola pill, sunehri kinari, teer nahi) ----
         TextView back = new TextView(this);
-        back.setText("←  Back");
+        back.setText("Back");
         back.setTextColor(txt);
         back.setTextSize(15);
         back.setTypeface(null, android.graphics.Typeface.BOLD);
-        back.setPadding(dp(16), dp(10), dp(16), dp(10));
-        back.setBackground(box(card, 12));
+        back.setLetterSpacing(0.08f);
+        back.setPadding(dp(26), dp(11), dp(26), dp(11));
+        GradientDrawable bb = new GradientDrawable();
+        bb.setColor(card);
+        bb.setCornerRadius(dp(30));
+        bb.setStroke(dp(2), accent);
+        back.setBackground(bb);
         back.setOnClickListener(v -> finish());
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -77,6 +82,8 @@ public class PickerActivity extends Activity {
 
         if (kind.equals("weather")) {
             buildWeather(root);
+        } else if (kind.equals("keys")) {
+            buildKeys(root);
         } else {
             buildList(root);
         }
@@ -173,6 +180,82 @@ public class PickerActivity extends Activity {
         root.addView(save);
     }
 
+    // ---------- keys wala page ----------
+
+    private void buildKeys(LinearLayout root) {
+        final java.util.List<EditText> inputs = new java.util.ArrayList<>();
+        for (int i = 1; i <= Keys.MAX_KEYS; i++) {
+            TextView label = new TextView(this);
+            label.setText("Gemini Key " + i + " (AI Studio)");
+            label.setTextColor(hintC);
+            label.setTextSize(13);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = dp(10);
+            lp.bottomMargin = dp(5);
+            root.addView(label, lp);
+
+            EditText in = keyField("Paste key " + i + " here (can leave empty)");
+            in.setText(Keys.geminiKeyAt(this, i));
+            root.addView(in);
+            inputs.add(in);
+        }
+
+        TextView groqLabel = new TextView(this);
+        groqLabel.setText("Groq API Key (backup brain + speech recognition)");
+        groqLabel.setTextColor(hintC);
+        groqLabel.setTextSize(13);
+        LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        glp.topMargin = dp(14);
+        glp.bottomMargin = dp(5);
+        root.addView(groqLabel, glp);
+
+        final EditText groqIn = keyField("Paste Groq key here");
+        groqIn.setText(Keys.groqKey(this));
+        root.addView(groqIn);
+
+        TextView save = new TextView(this);
+        save.setText("Save");
+        save.setTextColor(bg);
+        save.setTextSize(16);
+        save.setTypeface(null, android.graphics.Typeface.BOLD);
+        save.setGravity(Gravity.CENTER);
+        save.setPadding(dp(16), dp(14), dp(16), dp(14));
+        save.setBackground(box(accent, 14));
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        sp.topMargin = dp(18);
+        root.addView(save, sp);
+        save.setOnClickListener(v -> {
+            java.util.List<String> keys = new java.util.ArrayList<>();
+            for (EditText in : inputs) keys.add(in.getText().toString());
+            Keys.save(this, keys, groqIn.getText().toString());
+            ChatClient.resetBreakers();
+            GeminiTts.resetBreaker();
+            android.widget.Toast.makeText(this,
+                    Keys.geminiKeys(this).size() + " Gemini key(s) saved.",
+                    android.widget.Toast.LENGTH_SHORT).show();
+            finish();
+        });
+    }
+
+    private EditText keyField(String hintText) {
+        EditText in = new EditText(this);
+        in.setHint(hintText);
+        in.setTextColor(txt);
+        in.setHintTextColor(hintC);
+        in.setTextSize(15);
+        in.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        in.setPadding(dp(16), dp(14), dp(16), dp(14));
+        in.setBackground(box(card, 14));
+        return in;
+    }
+
     // ---------- kind ke hisaab se data ----------
 
     private String title() {
@@ -181,6 +264,7 @@ public class PickerActivity extends Activity {
             case "theme": return "Theme";
             case "emotion": return "Emotion";
             case "weather": return "Weather API Key";
+            case "keys": return "Keys";
             default: return "Personality";
         }
     }
@@ -191,6 +275,7 @@ public class PickerActivity extends Activity {
             case "theme": return "Choose the app theme.";
             case "emotion": return "Choose Ayesha's mood.";
             case "weather": return "For live weather. The key stays on this phone.";
+            case "keys": return "Stored only on this phone. Make each Gemini key from a different Gmail.";
             default: return "Choose a style — Ayesha will speak in that tone.";
         }
     }
