@@ -20,15 +20,15 @@ public class AyeshaController {
             if (bitmap == null) return null;
 
             int w = bitmap.getWidth(), h = bitmap.getHeight();
-            // v89: frames halke = tez upload (720 wide, quality 55) —
-            // v87 ka 1080 nishane ke liye tha, raftaar ki qeemat zyada thi
-            if (w > 720) {
-                float scale = 720f / w;
+            // v90: darmiyani raasta — 900 wide, quality 65 (720 pe
+            // chhote icons dhundle ho rahe thay; 1080 raftaar khata tha)
+            if (w > 900) {
+                float scale = 900f / w;
                 bitmap = Bitmap.createScaledBitmap(bitmap,
-                        720, Math.round(h * scale), true);
+                        900, Math.round(h * scale), true);
             }
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 55, baos);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 65, baos);
             return Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP);
         } catch (Exception e) {
             return null;

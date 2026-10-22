@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mujahid.myagent"
-    android:versionCode="89"
-    android:versionName="1.0-rabta">
+    android:versionCode="90"
+    android:versionName="1.0-bajna">
 
     <!-- Manual aapt2 build ke liye SDK yahin declare — taake targetSdk kabhi miss na ho -->
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
@@ -33,6 +33,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- v39 Reminder: exact alarm + reboot pe dobara schedule -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- v90: direct alarm/timer intents (Clock app ki UI ke baghair) -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- v40 Yaadein: location (mausam + "main kahan hun") -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

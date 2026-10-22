@@ -32,7 +32,10 @@ import java.util.regex.Pattern;
  */
 public class Reminder {
 
-    public static final String CH_ID = "ayesha_reminders";
+    // v90: naya channel id — purana channel aik dafa ban jaye to us ki
+    // settings (sound waghera) Android badalne nahi deta; naye id se
+    // alarm-wali sound + vibration pakki ho jati hai
+    public static final String CH_ID = "ayesha_reminders_v2";
     private static final String PREFS = "reminders";
 
     /** Parse ka natija. */
@@ -421,8 +424,51 @@ public class Reminder {
             if (nm == null) return;
             NotificationChannel ch = new NotificationChannel(
                     CH_ID, "Reminders", NotificationManager.IMPORTANCE_HIGH);
-            ch.setDescription("Ayesha ki yaad-dahani");
+            ch.setDescription("Ayesha reminders — with alarm sound");
+            // v90: channel pe ALARM wali sound + vibration (setDefaults
+            // Oreo+ pe channel ke samne bekaar hota hai — asal setting yahi)
+            try {
+                android.net.Uri snd = android.media.RingtoneManager
+                        .getDefaultUri(android.media.RingtoneManager.TYPE_ALARM);
+                if (snd == null) snd = android.media.RingtoneManager
+                        .getDefaultUri(
+                                android.media.RingtoneManager.TYPE_NOTIFICATION);
+                android.media.AudioAttributes aa =
+                        new android.media.AudioAttributes.Builder()
+                                .setUsage(android.media.AudioAttributes
+                                        .USAGE_ALARM)
+                                .setContentType(android.media.AudioAttributes
+                                        .CONTENT_TYPE_SONIFICATION)
+                                .build();
+                ch.setSound(snd, aa);
+            } catch (Exception ignored) { }
+            ch.enableVibration(true);
+            ch.setVibrationPattern(new long[]{0, 400, 200, 400});
             nm.createNotificationChannel(ch);
+        } catch (Exception ignored) { }
+    }
+
+    /**
+     * v90 catch-up: agar kisi reminder ka waqt guzar gaya lekin alarm
+     * na baja ho (phone ki battery-hifazat alarm kha jati hai), to
+     * watchdog/app khulne pe use AB notification se poora kar do.
+     * 12 ghante se purani entries khamoshi se saaf.
+     */
+    public static void catchUp(Context ctx) {
+        try {
+            long now = System.currentTimeMillis();
+            for (JSONObject o : entries(ctx)) {
+                long at = o.optLong("at", 0);
+                long id = o.optLong("id", -1);
+                if (at <= now - 60_000L && at > now - 12 * 3600_000L) {
+                    showNotification(ctx, o.optString("msg", ""));
+                    remove(ctx, id);
+                    Diag.event("reminder catch-up: guzra hua reminder "
+                            + "notification se poora kiya");
+                } else if (at <= now - 12 * 3600_000L) {
+                    remove(ctx, id);
+                }
+            }
         } catch (Exception ignored) { }
     }
 
@@ -437,11 +483,16 @@ public class Reminder {
             PendingIntent pi = PendingIntent.getActivity(ctx, 7, app,
                     PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
             Notification n = new Notification.Builder(ctx, CH_ID)
-                    .setContentTitle("⏰ Ayesha — Yaad dilana")
+                    .setContentTitle("⏰ Ayesha Reminder")
                     .setContentText(msg)
                     .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
                     .setContentIntent(pi)
                     .setAutoCancel(true)
+                    // v90: alarm wali pehchan + full-screen (lock screen
+                    // pe bhi foran nazar aye) — permission manifest me hai
+                    .setCategory(Notification.CATEGORY_ALARM)
+                    .setVisibility(Notification.VISIBILITY_PUBLIC)
+                    .setFullScreenIntent(pi, true)
                     .setDefaults(Notification.DEFAULT_ALL)
                     .build();
             nm.notify((int) (System.currentTimeMillis() % 100000), n);

@@ -78,6 +78,9 @@ public class A11yWatchdog {
 
     /** Watchdog ka check — WatchdogReceiver har alarm pe bulata hai. */
     public static void check(Context ctx) {
+        // v90: pehle guzre hue reminders ka catch-up (batttery ne agar
+        // kisi ka alarm khaya ho to ye use poora kar deta hai)
+        try { Reminder.catchUp(ctx); } catch (Exception ignored) { }
         try {
             SharedPreferences p =
                     ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
