@@ -559,7 +559,7 @@ public class LiveTalk {
             } catch (Exception ignored) { }
         }
         // v53: Settings me chuni hui awaz
-        String voiceName = (ctx != null) ? SettingsActivity.liveVoiceName(ctx) : "Kore";
+        String voiceName = (ctx != null) ? SettingsActivity.liveVoiceName(ctx) : "Aoede";
         final String sysFinal = systemText;
         JSONObject setup = new JSONObject()
                 .put("model", model)
@@ -681,6 +681,20 @@ public class LiveTalk {
                 + "finish typing its reply before you read it. Max 60.",
                 props("seconds", "NUMBER", "Seconds to wait (1-60)"),
                 "seconds"));
+        decls.put(decl("add_reminder",
+                "Set a reminder in AYESHA'S OWN reminder system — at the "
+                + "time she will notify AND speak it herself. Use WHENEVER "
+                + "he says 'reminder', 'yaad dilana', 'yaad karna', or "
+                + "'X minute baad / X baje bata dena ke ... karna hai'. "
+                + "Give EITHER after_minutes ('2 minute baad' = 2) OR "
+                + "hour+minute (24h) for a clock time. NEVER use set_timer "
+                + "or set_alarm for reminders.",
+                new JSONObject()
+                        .put("message", strProp("What to remind about, in his words"))
+                        .put("after_minutes", numProp("Minutes from now (for 'X minute baad'); 0 if using hour/minute"))
+                        .put("hour", numProp("Hour 0-23 for a clock time; -1 if using after_minutes"))
+                        .put("minute", numProp("Minute 0-59")),
+                "message"));
         decls.put(decl("list_reminders",
                 "List all pending reminders with their times. Use when he "
                 + "asks what reminders exist, or before deleting one.",
@@ -700,9 +714,11 @@ public class LiveTalk {
                 new JSONObject()));
         decls.put(decl("set_alarm",
                 "Set an alarm DIRECTLY in the phone's Clock (no UI, no "
-                + "tapping — it is set in one second). Use for ANY alarm "
-                + "request: 'alarm laga do', '6 baje jagana'. hour is "
-                + "0-23 (24-hour), minute 0-59.",
+                + "tapping — it is set in one second). Use ONLY when he "
+                + "literally says the word 'alarm' ('alarm laga do', '6 "
+                + "baje ka alarm'). If he says 'reminder' or 'yaad "
+                + "dilana' — that is add_reminder, NEVER this tool. hour "
+                + "is 0-23 (24-hour), minute 0-59.",
                 new JSONObject()
                         .put("hour", numProp("Hour 0-23"))
                         .put("minute", numProp("Minute 0-59"))
@@ -710,8 +726,10 @@ public class LiveTalk {
                 "hour", "minute"));
         decls.put(decl("set_timer",
                 "Start a countdown timer DIRECTLY (no UI, no tapping). "
-                + "Use for ANY timer request: '5 minute ka timer', 'timer "
-                + "laga do'. seconds = total countdown seconds.",
+                + "Use ONLY when he literally says the word 'timer'. "
+                + "If he says 'X minute baad yaad dilana' or 'reminder "
+                + "laga do' — that is add_reminder, NEVER this tool. "
+                + "seconds = total countdown seconds.",
                 new JSONObject()
                         .put("seconds", numProp("Countdown length in seconds"))
                         .put("message", strProp("Timer label, short")),
