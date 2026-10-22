@@ -25,6 +25,18 @@ public class LiveTools {
      * isi liye tap asal jagah se upar lagta tha aur screen ke neeche
      * wale hisse tak tap phonch hi nahi sakta tha.
      */
+    /** v90: aaj (ya kal, agar waqt guzar gaya) ke alarm ka millis —
+     *  sirf confirm bolne ke liye. */
+    private static long alarmMillis(int hh, int mm) {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        c.set(java.util.Calendar.HOUR_OF_DAY, hh);
+        c.set(java.util.Calendar.MINUTE, mm);
+        c.set(java.util.Calendar.SECOND, 0);
+        if (c.getTimeInMillis() <= System.currentTimeMillis())
+            c.add(java.util.Calendar.DAY_OF_YEAR, 1);
+        return c.getTimeInMillis();
+    }
+
     private static int[] realSize(Context ctx) {
         try {
             android.view.WindowManager wm = (android.view.WindowManager)
@@ -183,6 +195,53 @@ public class LiveTools {
                     return nRem > 0
                             ? nRem + " reminders delete kar diye boss."
                             : "Koi reminder tha hi nahi boss.";
+                }
+
+                // v90: Alarm/Timer — Clock app ki UI pe tap/scroll WALA
+                // rasta band; Android ke direct intent se 1 second me set
+                case "set_alarm": {
+                    int hh = a.optInt("hour", -1);
+                    int mm = a.optInt("minute", 0);
+                    if (hh < 0 || hh > 23 || mm < 0 || mm > 59)
+                        return "Alarm ka waqt samajh nahi aya boss.";
+                    try {
+                        android.content.Intent ai = new android.content.Intent(
+                                android.provider.AlarmClock.ACTION_SET_ALARM)
+                                .putExtra(android.provider.AlarmClock.EXTRA_HOUR, hh)
+                                .putExtra(android.provider.AlarmClock.EXTRA_MINUTES, mm)
+                                .putExtra(android.provider.AlarmClock.EXTRA_MESSAGE,
+                                        a.optString("message", "Ayesha alarm"))
+                                .putExtra(android.provider.AlarmClock.EXTRA_SKIP_UI, true)
+                                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                        ctx.startActivity(ai);
+                        return "Alarm set ho gaya boss: "
+                                + Reminder.timeText(alarmMillis(hh, mm));
+                    } catch (Exception e) {
+                        return "Alarm set nahi ho saka boss — is phone ka "
+                                + "Clock app direct alarm ko support nahi karta.";
+                    }
+                }
+
+                case "set_timer": {
+                    int secs = a.optInt("seconds", 0);
+                    if (secs <= 0)
+                        return "Timer ka waqt samajh nahi aya boss.";
+                    try {
+                        android.content.Intent ti = new android.content.Intent(
+                                android.provider.AlarmClock.ACTION_SET_TIMER)
+                                .putExtra(android.provider.AlarmClock.EXTRA_LENGTH, secs)
+                                .putExtra(android.provider.AlarmClock.EXTRA_MESSAGE,
+                                        a.optString("message", "Ayesha timer"))
+                                .putExtra(android.provider.AlarmClock.EXTRA_SKIP_UI, true)
+                                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                        ctx.startActivity(ti);
+                        return "Timer shuru ho gaya boss: "
+                                + (secs >= 60 ? (secs / 60) + " minute"
+                                        : secs + " second") + " ka.";
+                    } catch (Exception e) {
+                        return "Timer set nahi ho saka boss — is phone ka "
+                                + "Clock app direct timer ko support nahi karta.";
+                    }
                 }
 
                 case "wait_seconds": {

@@ -698,6 +698,24 @@ public class LiveTalk {
                 + "alarms. Use only when he clearly says delete/remove "
                 + "all reminders.",
                 new JSONObject()));
+        decls.put(decl("set_alarm",
+                "Set an alarm DIRECTLY in the phone's Clock (no UI, no "
+                + "tapping — it is set in one second). Use for ANY alarm "
+                + "request: 'alarm laga do', '6 baje jagana'. hour is "
+                + "0-23 (24-hour), minute 0-59.",
+                new JSONObject()
+                        .put("hour", numProp("Hour 0-23"))
+                        .put("minute", numProp("Minute 0-59"))
+                        .put("message", strProp("Alarm label, short")),
+                "hour", "minute"));
+        decls.put(decl("set_timer",
+                "Start a countdown timer DIRECTLY (no UI, no tapping). "
+                + "Use for ANY timer request: '5 minute ka timer', 'timer "
+                + "laga do'. seconds = total countdown seconds.",
+                new JSONObject()
+                        .put("seconds", numProp("Countdown length in seconds"))
+                        .put("message", strProp("Timer label, short")),
+                "seconds"));
         return new JSONArray().put(new JSONObject()
                 .put("functionDeclarations", decls));
     }
