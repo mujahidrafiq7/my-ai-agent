@@ -179,6 +179,43 @@ public class LiveTools {
                     }
                 }
 
+                case "add_reminder": {
+                    // v91: Ayesha ka APNA reminder — Clock timer/alarm
+                    // se bilkul alag (strict separation)
+                    String rmsg = a.optString("message", "").trim();
+                    if (rmsg.isEmpty()) rmsg = "yaad dilane ka waqt ho gaya";
+                    int afterMin = a.optInt("after_minutes", 0);
+                    long atMs;
+                    if (afterMin > 0) {
+                        atMs = System.currentTimeMillis()
+                                + afterMin * 60_000L;
+                    } else {
+                        int rH = a.optInt("hour", -1);
+                        int rM = a.optInt("minute", 0);
+                        if (rH < 0 || rH > 23 || rM < 0 || rM > 59)
+                            return "Reminder ka waqt samajh nahi aya "
+                                    + "boss — kitne minute baad, ya kis "
+                                    + "waqt (ghanta:min), ye batao.";
+                        atMs = alarmMillis(rH, rM);
+                    }
+                    // Dedupe: waisa hi reminder ±2 min me pehle se ho
+                    // (pattern-rasta bhi kabhi kabhi wahi laga deta hai)
+                    for (org.json.JSONObject e : Reminder.entries(ctx)) {
+                        if (e.optString("msg", "").equalsIgnoreCase(rmsg)
+                                && Math.abs(e.optLong("at", 0) - atMs)
+                                        < 120_000L) {
+                            return "Ye reminder pehle se laga hua hai "
+                                    + "boss: " + Reminder.timeText(atMs)
+                                    + " — " + rmsg;
+                        }
+                    }
+                    String rErr = Reminder.schedule(ctx, atMs, rmsg);
+                    return rErr != null ? rErr
+                            : "Reminder lag gaya boss: "
+                                    + Reminder.timeText(atMs)
+                                    + " — " + rmsg;
+                }
+
                 case "list_reminders":
                     return Reminder.listText(ctx);
 

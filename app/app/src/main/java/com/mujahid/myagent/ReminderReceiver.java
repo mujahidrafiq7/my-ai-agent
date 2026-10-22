@@ -43,25 +43,94 @@ public class ReminderReceiver extends BroadcastReceiver {
         // 1) Notification — hamesha aayegi
         Reminder.showNotification(ctx, say);
 
-        // 2) Uski awaz — ho saka to (network + app zinda hona zaroori)
+        // 2) Uski apni awaz — v91: pehle Gemini wali awaz (Aoede),
+        //    na ho sake to phone ki offline TTS; CPU ko jagaye rakhne
+        //    ke liye wakelock (60s tak)
         final PendingResult pr = goAsync();
+        final android.os.PowerManager.WakeLock wl;
+        android.os.PowerManager pm = (android.os.PowerManager)
+                ctx.getSystemService(Context.POWER_SERVICE);
+        if (pm != null) {
+            wl = pm.newWakeLock(
+                    android.os.PowerManager.PARTIAL_WAKE_LOCK,
+                    "ayesha:reminder-speak");
+            try { wl.acquire(60_000L); } catch (Exception ignored) { }
+        } else {
+            wl = null;
+        }
+        final Context appCtx = ctx.getApplicationContext();
         new Thread(() -> {
+            boolean spoke = false;
             try {
-                List<String> keys = Keys.geminiKeys(ctx);
+                List<String> keys = Keys.geminiKeys(appCtx);
                 if (!keys.isEmpty()) {
                     CountDownLatch latch = new CountDownLatch(1);
-                    TtsClient.speak(ctx, "Boss! " + say, keys,
+                    final boolean[] done = {false};
+                    TtsClient.speak(appCtx,
+                            "Boss! Waqt ho gaya hai — aap ne kaha tha: "
+                                    + say,
+                            keys,
                             new TtsClient.Listener() {
                                 @Override public void onStatus(String s) { }
-                                @Override public void onDone() { latch.countDown(); }
-                                @Override public void onError(String r) { latch.countDown(); }
+                                @Override public void onDone() {
+                                    done[0] = true;
+                                    latch.countDown();
+                                }
+                                @Override public void onError(String r) {
+                                    latch.countDown();
+                                }
                             });
-                    latch.await(45, TimeUnit.SECONDS);
+                    latch.await(20, TimeUnit.SECONDS);
+                    spoke = done[0];
                 }
-            } catch (Exception ignored) {
-            } finally {
-                try { pr.finish(); } catch (Exception ignored) { }
+            } catch (Exception ignored) { }
+            if (!spoke) {
+                // Fallback: phone ki apni offline awaz (internet baghair)
+                try { speakOffline(appCtx, say); }
+                catch (Exception ignored) { }
             }
+            try { if (wl != null && wl.isHeld()) wl.release(); }
+            catch (Exception ignored) { }
+            try { pr.finish(); } catch (Exception ignored) { }
         }).start();
+    }
+
+    /** v91 fallback: Android TextToSpeech — bol kar rukna, phir band. */
+    private void speakOffline(Context ctx, String say)
+            throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final android.speech.tts.TextToSpeech[] box = new android.speech.tts.TextToSpeech[1];
+        box[0] = new android.speech.tts.TextToSpeech(ctx, status -> {
+            try {
+                if (status == android.speech.tts.TextToSpeech.SUCCESS) {
+                    android.speech.tts.TextToSpeech t = box[0];
+                    java.util.Locale ur = new java.util.Locale("ur");
+                    if (t.isLanguageAvailable(ur)
+                            >= android.speech.tts.TextToSpeech.LANG_AVAILABLE) {
+                        t.setLanguage(ur);
+                    }
+                    t.setOnUtteranceProgressListener(
+                            new android.speech.tts.UtteranceProgressListener() {
+                                @Override public void onStart(String id) { }
+                                @Override public void onDone(String id) {
+                                    latch.countDown();
+                                }
+                                @Override public void onError(String id) {
+                                    latch.countDown();
+                                }
+                            });
+                    t.speak("Boss! Waqt ho gaya hai — aap ne kaha tha: "
+                                    + say,
+                            android.speech.tts.TextToSpeech.QUEUE_FLUSH,
+                            null, "ayesha-reminder");
+                } else {
+                    latch.countDown();
+                }
+            } catch (Exception e) {
+                latch.countDown();
+            }
+        });
+        latch.await(15, TimeUnit.SECONDS);
+        try { box[0].shutdown(); } catch (Exception ignored) { }
     }
 }

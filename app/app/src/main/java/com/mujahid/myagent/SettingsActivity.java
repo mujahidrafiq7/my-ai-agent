@@ -259,12 +259,12 @@ public class SettingsActivity extends Activity {
         if (vi == 0) {
             switch (emotionIdx(ctx)) {
                 case 3: return "Aoede";   // Sad → naram
-                case 4: return "Puck";    // Angry → gehra
+                case 4: return "Kore";    // v91: Angry — Puck khatam, Kore (firm)
                 case 5: return "Sulafat"; // Romantic → warm
                 case 6: return "Sulafat"; // Emotional → warm
-                case 7: return "Puck";     // Excited → gehra
+                case 7: return "Kore";     // v91: Excited — Puck khatam, Kore (bright)
                 case 2: return "Kore";    // Happy → bright
-                default: return "Kore";   // Auto/Normal → default
+                default: return "Aoede";   // v91: Auto/Normal → Aoede (nayi default)
             }
         }
         return VOICE_IDS[vi - 1];
