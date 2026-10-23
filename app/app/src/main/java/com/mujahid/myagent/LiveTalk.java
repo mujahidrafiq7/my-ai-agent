@@ -633,7 +633,9 @@ public class LiveTalk {
                 "button"));
         decls.put(decl("search_youtube",
                 "Search on YouTube and open the results in the YouTube app. "
-                + "If play=true, also tap the FIRST video so it starts playing.",
+                + "If play=true, also tap the FIRST video so it starts playing. "
+                + "For a song by a specific singer, use query '<singer> <song>' "
+                + "with play=true so the ORIGINAL song plays.",
                 new JSONObject()
                         .put("query", strProp("What to search, e.g. Ertugrul drama"))
                         .put("play", new JSONObject().put("type", "BOOLEAN")
