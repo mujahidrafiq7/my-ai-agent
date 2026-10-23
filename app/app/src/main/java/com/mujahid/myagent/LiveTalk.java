@@ -712,6 +712,32 @@ public class LiveTalk {
                 + "alarms. Use only when he clearly says delete/remove "
                 + "all reminders.",
                 new JSONObject()));
+        // v94: notifications — parhna / direct reply / kholna
+        decls.put(decl("get_notifications",
+                "List the phone's recent notifications and messages from "
+                + "ALL apps (WhatsApp, Gmail, SMS, Instagram, etc.) — "
+                + "who sent what. Use when he asks what messages or "
+                + "notifications arrived.",
+                new JSONObject()));
+        decls.put(decl("reply_to_notification",
+                "Reply to a notification DIRECTLY in the background — "
+                + "the app does NOT open (works only where the "
+                + "notification has a direct-reply action, e.g. "
+                + "WhatsApp/SMS). Use the exact words he dictates as "
+                + "the reply text. Never reply without his words.",
+                new JSONObject()
+                        .put("text", strProp("The exact reply text he dictated"))
+                        .put("app", strProp("Optional: app name, e.g. WhatsApp"))
+                        .put("sender", strProp("Optional: sender name to reply to")),
+                "text"));
+        decls.put(decl("open_notification",
+                "Open (tap) a notification so its app opens on screen — "
+                + "use when there is no direct-reply action (e.g. some "
+                + "Gmail notifications); then use the screen tools to "
+                + "type the reply he dictates.",
+                new JSONObject()
+                        .put("app", strProp("Optional: app name, e.g. Gmail"))
+                        .put("sender", strProp("Optional: sender name"))));
         decls.put(decl("set_alarm",
                 "Set an alarm DIRECTLY in the phone's Clock (no UI, no "
                 + "tapping — it is set in one second). Use ONLY when he "

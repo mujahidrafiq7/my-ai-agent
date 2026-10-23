@@ -234,6 +234,57 @@ public class LiveTools {
                             : "Koi reminder tha hi nahi boss.";
                 }
 
+                // v94: Notification tools — parhna / direct reply / kholna
+                case "get_notifications": {
+                    if (!NotifListener.isAccessEnabled(ctx))
+                        return "Boss, Notification Access abhi OFF hai. "
+                                + "Settings me 'Notification Access' wala "
+                                + "button hai — wahan se ek dafa ON kar do, "
+                                + "phir main saari notifications parh sakungi.";
+                    return NotifStore.listText(ctx, 10);
+                }
+
+                case "reply_to_notification": {
+                    String rText = a.optString("text", "").trim();
+                    if (rText.isEmpty())
+                        return "Reply ka text samajh nahi aya boss — kya likhun?";
+                    if (!NotifListener.isAccessEnabled(ctx))
+                        return "Boss, Notification Access OFF hai — Settings "
+                                + "se ON kar do pehle.";
+                    NotifStore.Entry re = NotifStore.find(ctx,
+                            a.optString("app", ""), a.optString("sender", ""), true);
+                    if (re == null)
+                        return "Boss, koi aisi notification nahi mili jis me "
+                                + "direct reply ka option ho. Agar chaho to "
+                                + "open_notification se wo app khol kar "
+                                + "wahan reply kar dun?";
+                    boolean sent = NotifListener.sendReply(re, rText);
+                    return sent
+                            ? "Reply bhej diya boss — " + re.app + " par "
+                                    + re.title + " ko: '" + rText + "'"
+                            : "Boss, reply nahi gaya — wo notification shayad "
+                                    + "ab active nahi rahi. App khol kar "
+                                    + "reply kar dun?";
+                }
+
+                case "open_notification": {
+                    if (!NotifListener.isAccessEnabled(ctx))
+                        return "Boss, Notification Access OFF hai — Settings "
+                                + "se ON kar do pehle.";
+                    NotifStore.Entry oe = NotifStore.find(ctx,
+                            a.optString("app", ""), a.optString("sender", ""), false);
+                    if (oe == null)
+                        return "Boss, aisi koi notification nahi mili.";
+                    boolean opened = NotifListener.openEntry(oe);
+                    return opened
+                            ? oe.app + " ki notification khol di hai boss — "
+                                    + "screen par wo chat/page khul gaya hoga. "
+                                    + "Ab bata do kya reply likhun, main type "
+                                    + "karke bhej dungi."
+                            : "Boss, wo notification khul nahi saki — shayad "
+                                    + "ab wo wahan nahi rahi.";
+                }
+
                 // v90: Alarm/Timer — Clock app ki UI pe tap/scroll WALA
                 // rasta band; Android ke direct intent se 1 second me set
                 case "set_alarm": {

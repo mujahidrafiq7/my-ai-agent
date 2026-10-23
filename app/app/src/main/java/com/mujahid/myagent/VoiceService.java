@@ -104,6 +104,7 @@ public class VoiceService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        instance = this;
         String action = intent != null ? intent.getAction() : null;
         if (ACTION_STOP.equals(action)) {
             stopConversation();
@@ -117,8 +118,27 @@ public class VoiceService extends Service {
         return START_STICKY;
     }
 
-    @Override
+    /**
+     * v94: Live guftagu chal rahi ho to ek khabar us ki apni awaz me
+     * suna do (NotifListener yahan se bulata hai). Guftagu band ho to
+     * false — bulane wala phir apna doosra rasta (notification) lega.
+     */
+    public static boolean tryAnnounceLive(String summary) {
+        try {
+            VoiceService vs = instance;
+            if (vs == null || !vs.conversationOn || vs.liveTalk == null) return false;
+            vs.liveTalk.sayText("[Phone note — do not read this note aloud] "
+                    + summary + ". Lovingly tell him in ONE short sentence "
+                    + "that this message just arrived, then ask: should I "
+                    + "read it out, or reply to it?");
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public void onDestroy() {
+        if (instance == this) instance = null;
         conversationOn = false;
         liveWanted = false; // v89
         try { liveCmdExec.shutdownNow(); } catch (Exception ignored) { } // v73
