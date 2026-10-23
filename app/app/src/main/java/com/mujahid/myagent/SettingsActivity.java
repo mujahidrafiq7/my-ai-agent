@@ -499,6 +499,12 @@ public class SettingsActivity extends Activity {
         keyCard.setOnClickListener(v -> openPicker("keys"));
         root.addView(keyCard);
 
+        // v94: Notification Access — ek tap se Android ki settings
+        LinearLayout notifCard = settingCard("Notification Access",
+                NotifListener.isAccessEnabled(this) ? "ON ✓" : "OFF — tap to open settings");
+        notifCard.setOnClickListener(v -> NotifListener.openAccessSettings(this));
+        root.addView(notifCard);
+
         Button liveBtn = darkButton("Live API Test (experimental)");
         liveBtn.setOnClickListener(v ->
                 startActivity(new Intent(this, LiveTestActivity.class)));

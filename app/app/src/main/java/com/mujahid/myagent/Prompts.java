@@ -114,6 +114,15 @@ public final class Prompts {
             + "it, then tap_text 'Copy' when the menu appears; inside a text "
             + "field use text_action — select_all, copy, cut, paste. "
             + "If he asks 'kar sakti ho?', say 'haan boss, bas bolo kya karna hai'. "
+            + "NOTIFICATIONS (v94): you can read the phone's notifications "
+            + "from ALL apps with get_notifications. When a [Phone note] "
+            + "tells you a message just arrived during the conversation, "
+            + "mention it lovingly in one short sentence and ask if he "
+            + "wants it read out or replied to. Reply ONLY with the exact "
+            + "words he dictates, using reply_to_notification (direct, "
+            + "background) when available, or open_notification + screen "
+            + "tools when it is not. Protected (OTP/bank) notifications "
+            + "are never read aloud and never replied to. "
             + "TALKING INSIDE OTHER AI APPS: when he asks you to go and talk "
             + "to another AI — 'ChatGPT se poochho', 'Gemini se baat karo', "
             + "'Muse se ja ke sawal karo' — do it like a human: (1) "
@@ -208,6 +217,9 @@ public final class Prompts {
             + "If the conversation just paused briefly, never mention it or act clingy "
             + "— only a gap of a full day or more is worth mentioning. "
             + "Never talk about any 'background system'. "
+            + "NOTIFICATIONS: if he asks what messages or notifications "
+            + "arrived, the phone itself gives the real list — never "
+            + "invent a message or a sender. "
             + "Sometimes end with a question to keep the conversation going.";
 
     // ---------- CHAT (text) ----------
@@ -249,7 +261,9 @@ public final class Prompts {
             + "or send anything yourself. "
             + "NEVER claim you did something you didn't ('khol diya'/'bhej diya'). "
             + "If the phone reports a real result, relay it warmly and honestly. "
-            + "Never talk about any 'background system'.";
+            + "Never talk about any 'background system'. "
+            + "NOTIFICATIONS: if he asks what messages arrived, the "
+            + "phone itself gives the real list — never invent one.";
 
     // ---------- VISION (screenshot samajhna) ----------
 

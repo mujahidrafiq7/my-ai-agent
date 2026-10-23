@@ -117,6 +117,19 @@ public class PhoneTools {
             return openYouTubeSearch(ctx, q, false);
         }
 
+        // v94: notifications parho — "notifications batao" / "kya message aaye hain"
+        boolean notifWord = t.contains("notification") || t.contains("notif");
+        boolean msgAsk = t.contains("message") && (t.contains("aaye") || t.contains("aaya")
+                || t.contains("naye") || t.contains("naya") || t.contains("parho")
+                || t.contains("batao") || t.contains("sunao"));
+        if (notifWord || msgAsk) {
+            if (!NotifListener.isAccessEnabled(ctx))
+                return new Result(true, "Boss, Notification Access abhi OFF hai — "
+                        + "Settings me 'Notification Access' wala card hai, wahan se "
+                        + "ek dafa ON kar do.", null);
+            return new Result(true, NotifStore.listText(ctx, 10), null);
+        }
+
         // 1b) v75: PLAY — "ertugrul drama lagao" / "koi gana sunao" /
         // "youtube pe X play karo" → search kholo + pehli video pe tap
         boolean playVerb = t.contains("lagao") || t.contains("laga do")
