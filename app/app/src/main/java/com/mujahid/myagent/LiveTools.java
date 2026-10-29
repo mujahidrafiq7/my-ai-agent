@@ -285,6 +285,54 @@ public class LiveTools {
                                     + "ab wo wahan nahi rahi.";
                 }
 
+                // v96: WhatsApp scheduled messages
+                case "schedule_whatsapp_message": {
+                    String wContact = a.optString("contact", "").trim();
+                    String wMsg = a.optString("message", "").trim();
+                    if (wContact.isEmpty()) return "Kis ko bhejna hai boss — naam samajh nahi aya.";
+                    if (wMsg.isEmpty()) return "Message ka text samajh nahi aya boss — kya likhun?";
+                    String wNum = WhatsAppAction.resolveNumber(ctx, wContact);
+                    if (wNum == null)
+                        return wContact + " ka number Contacts me nahi mila boss — "
+                                + "naam theek se batao ya number de do.";
+                    int wAfter = a.optInt("after_minutes", 0);
+                    long wAt;
+                    if (wAfter > 0) {
+                        wAt = System.currentTimeMillis() + wAfter * 60_000L;
+                    } else {
+                        int wH = a.optInt("hour", -1);
+                        int wM = a.optInt("minute", 0);
+                        if (wH < 0 || wH > 23 || wM < 0 || wM > 59)
+                            return "Message ka waqt samajh nahi aya boss — kitne "
+                                    + "minute baad, ya kis waqt (ghanta:min)?";
+                        wAt = alarmMillis(wH, wM);
+                    }
+                    String wErr = WaSchedStore.add(ctx, wContact, wNum, wMsg, wAt);
+                    if (wErr != null) return wErr;
+                    return "Schedule kar diya boss — " + wContact + " ("
+                            + WaSchedStore.tail(wNum) + ") ko "
+                            + WaSchedStore.timeText(wAt) + " WhatsApp par "
+                            + "message jayega: '" + wMsg + "'";
+                }
+
+                case "list_scheduled_messages": {
+                    return WaSchedStore.listText(ctx);
+                }
+
+                case "cancel_scheduled_message": {
+                    java.util.List<WaSchedStore.Entry> gone =
+                            WaSchedStore.cancelByMatch(ctx, a.optString("match", ""));
+                    if (gone.isEmpty())
+                        return "Aisa koi scheduled message nahi mila boss.";
+                    StringBuilder sb = new StringBuilder("Cancel kar diya boss: ");
+                    for (int i = 0; i < gone.size(); i++) {
+                        if (i > 0) sb.append(", ");
+                        sb.append(gone.get(i).contact)
+                                .append(" (").append(WaSchedStore.timeText(gone.get(i).at)).append(")");
+                    }
+                    return sb.toString();
+                }
+
                 // v90: Alarm/Timer — Clock app ki UI pe tap/scroll WALA
                 // rasta band; Android ke direct intent se 1 second me set
                 case "set_alarm": {

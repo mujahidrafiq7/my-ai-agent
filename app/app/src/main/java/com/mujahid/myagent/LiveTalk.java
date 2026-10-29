@@ -740,6 +740,33 @@ public class LiveTalk {
                 new JSONObject()
                         .put("app", strProp("Optional: app name, e.g. Gmail"))
                         .put("sender", strProp("Optional: sender name"))));
+        // v96: WhatsApp scheduled messages
+        decls.put(decl("schedule_whatsapp_message",
+                "Schedule a WhatsApp message to be SENT automatically at a "
+                + "FUTURE time (the phone sends it by itself when the time "
+                + "comes). Use whenever he says to message someone later — "
+                + "'raat 10 baje Ali ko message kar dena', '30 minute baad "
+                + "Ahmad ko ye bhej dena'. Give EITHER after_minutes OR "
+                + "hour+minute (24h). NEVER use send_whatsapp_message for "
+                + "a future time, and NEVER use add_reminder for sending — "
+                + "a reminder only reminds HIM, it sends nothing.",
+                new JSONObject()
+                        .put("contact", strProp("Contact name (as saved in his phone) or phone number"))
+                        .put("message", strProp("The exact message text to send, in his words"))
+                        .put("after_minutes", numProp("Minutes from now (for '30 minute baad'); 0 if using hour/minute"))
+                        .put("hour", numProp("Hour 0-23 for a clock time; -1 if using after_minutes"))
+                        .put("minute", numProp("Minute 0-59")),
+                "contact", "message"));
+        decls.put(decl("list_scheduled_messages",
+                "List all pending scheduled WhatsApp messages with their "
+                + "times. Use when he asks which messages are scheduled.",
+                new JSONObject()));
+        decls.put(decl("cancel_scheduled_message",
+                "Cancel a scheduled WhatsApp message before it is sent. "
+                + "Match by the contact's name or part of the message.",
+                props("match", "STRING",
+                        "Contact name or words identifying the scheduled message"),
+                "match"));
         decls.put(decl("set_alarm",
                 "Set an alarm DIRECTLY in the phone's Clock (no UI, no "
                 + "tapping — it is set in one second). Use ONLY when he "

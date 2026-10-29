@@ -118,6 +118,12 @@ public class VoiceService extends Service {
         return START_STICKY;
     }
 
+    /** v96: scheduled WhatsApp wala daur guftagu check karne ke liye. */
+    public static boolean isConversationOn() {
+        VoiceService vs = instance;
+        return vs != null && vs.conversationOn;
+    }
+
     /**
      * v94: Live guftagu chal rahi ho to ek khabar us ki apni awaz me
      * suna do (NotifListener yahan se bulata hai). Guftagu band ho to
