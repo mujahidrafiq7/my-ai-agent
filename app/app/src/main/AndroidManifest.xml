@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mujahid.myagent"
-    android:versionCode="95"
-    android:versionName="1.0-jazbaat">
+    android:versionCode="96"
+    android:versionName="1.0-waqt">
 
     <!-- Manual aapt2 build ke liye SDK yahin declare — taake targetSdk kabhi miss na ho -->
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
@@ -69,6 +69,16 @@
         <receiver
             android:name=".WatchdogReceiver"
             android:exported="false" />
+        <!-- v96: scheduled WhatsApp messages (alarm + boot + unlock) -->
+        <receiver
+            android:name=".WaSchedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.mujahid.myagent.WA_SCHED_FIRE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.USER_PRESENT" />
+            </intent-filter>
+        </receiver>
         <activity
             android:name=".ChatActivity"
             android:exported="false" />

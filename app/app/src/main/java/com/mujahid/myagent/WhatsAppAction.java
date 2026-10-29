@@ -206,7 +206,38 @@ public class WhatsAppAction {
         if (num == null)
             return new Result(true, cap(name)
                     + " contacts me nahi mila boss — naam ya number check karo.");
-        ForegroundOpen.open(ctx, waChat(num), cap(name) + " ki chat");
+        return sendToNum(ctx, num, cap(name), msg);
+    }
+
+    /**
+     * v96: schedule karte waqt contact pehle se resolve karna —
+     * naam ho to Contacts se number, number diya ho to normalize.
+     * Na mile to null (schedule hi nahi hoga, galati waqt par nahi).
+     */
+    public static String resolveNumber(Context ctx, String nameOrNumber) {
+        if (nameOrNumber == null) return null;
+        String t = nameOrNumber.trim();
+        if (t.isEmpty()) return null;
+        String digits = t.replaceAll("[^0-9]", "");
+        boolean hasLetter = t.matches(".*[A-Za-z].*");
+        if (!hasLetter && digits.length() >= 7) {
+            return normNum(t);
+        }
+        if (!contactsOk(ctx)) return null;
+        return findNumber(ctx, t);
+    }
+
+    /** v96: seedha number par bhejo (scheduled wala rasta). */
+    public static Result sendToNumber(Context ctx, String num, String msg) {
+        if (!A11yService.isEnabled()) return needA11y();
+        if (num == null || num.isEmpty())
+            return new Result(true, "Number nahi mila boss.");
+        return sendToNum(ctx, num, num, msg);
+    }
+
+    /** Asal bhejne ka kaam — chat kholo, likho, send dabao (verify ke sath). */
+    private static Result sendToNum(Context ctx, String num, String label, String msg) {
+        ForegroundOpen.open(ctx, waChat(num), label + " ki chat");
         waitChatOpen(2800); // v78 polling
         boolean typed = A11yService.focusAndType(msg); // v64: focus karke type
         sleep(1200);
