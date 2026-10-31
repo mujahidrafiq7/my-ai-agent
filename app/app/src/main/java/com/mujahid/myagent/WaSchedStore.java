@@ -32,6 +32,8 @@ public final class WaSchedStore {
         public String number;  // normalized (92...)
         public String text;
         public long at;
+        public int att;   // v97: bhejne ki nakam koshishon ki ginti
+        public int tries; // v97: lock/busy ki wajah se ruke hue chakkar
     }
 
     private static final String PREFS = "wa_sched_store";
@@ -143,6 +145,34 @@ public final class WaSchedStore {
         } catch (Exception ignored) { }
     }
 
+    /** v97: nakam koshish ki ginti barhao (retry faisle ke liye). */
+    public static synchronized int bumpAtt(Context ctx, long id) {
+        load(ctx);
+        for (Entry e : ENTRIES) {
+            if (e.id == id) { e.att++; save(ctx); return e.att; }
+        }
+        return 0;
+    }
+
+    /** v97: lock ki wajah se rukne ki ginti barhao. */
+    public static synchronized int bumpTries(Context ctx, long id) {
+        load(ctx);
+        for (Entry e : ENTRIES) {
+            if (e.id == id) { e.tries++; save(ctx); return e.tries; }
+        }
+        return 0;
+    }
+
+    /** v97: is entry ke liye thodi dair baad dobara firing ka alarm. */
+    public static synchronized void scheduleRetry(Context ctx, long id, long delayMs) {
+        try {
+            AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+            if (am == null) return;
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
+                    System.currentTimeMillis() + delayMs, pending(ctx, id));
+        } catch (Exception ignored) { }
+    }
+
     /** Reboot ke baad: aane wale waqt walon ko dobara alarm lagao. */
     public static synchronized void rescheduleAll(Context ctx) {
         load(ctx);
@@ -200,6 +230,8 @@ public final class WaSchedStore {
                 e.number = o.optString("n");
                 e.text = o.optString("t");
                 e.at = o.optLong("at");
+                e.att = o.optInt("att");
+                e.tries = o.optInt("tr");
                 ENTRIES.add(e);
             }
         } catch (Exception ignored) { }
@@ -215,6 +247,8 @@ public final class WaSchedStore {
                 o.put("n", e.number);
                 o.put("t", e.text);
                 o.put("at", e.at);
+                o.put("att", e.att);
+                o.put("tr", e.tries);
                 arr.put(o);
             }
             ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

@@ -14,24 +14,33 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * v96 "1.0-waqt": scheduled WhatsApp messages chalane wala receiver.
+ * v97 "1.0-tez": scheduled WhatsApp messages — SEEDHA FIRING, koi hold nahi.
  *
- * Triggers: exact alarm (ACTION_FIRE), BOOT_COMPLETED (reschedule +
- * guzre hue bhej do), USER_PRESENT (unlock hote hi pending bhej do).
- *
- * Hifazati usool (us ke manzoor-shuda plan):
- *  - Ek waqt me EK hi daur (queue lock) — messages ek ek karke.
- *  - Live guftagu chal rahi ho to intezar (max ~150s), phir bhi busy
- *    ho to pending rakho + notification (screen hijack kabhi nahi).
- *  - Phone locked ho to bhejna hi nahi — pending + notification;
- *    unlock hote hi USER_PRESENT se khud chala jata hai.
- *  - Bhejne ke baad Home screen, aur result ki notification har haal me.
+ * v96 ki ghalti (us ki test report): Live guftagu ki "hifazat" ki wajah
+ * se message ruk gaya aur session khatam hone par koi trigger hi nahi
+ * tha — message mar gaya. v97 me:
+ *  - Live protection KHATAM: guftagu ho ya call, waqt par message
+ *    foran jata hai. Bhejne wala (WhatsAppAction) Live session se
+ *    bilkul alag hai — session crash/cut nahi hota.
+ *  - Lock ho to WakeActivity screen jagati hai; swipe lock khud
+ *    dismiss ho jata hai aur message usi pal jata hai. Secure lock
+ *    (PIN/pattern) Android kisi app ko khud kholne nahi deta — wahan
+ *    screen jagti hai, unlock ki darkhwast samne aati hai, aur
+ *    unlock hote hi (USER_PRESENT) message foran jata hai; sath
+ *    retry alarms bhi lage rehte hain taake pending kabhi mare na.
+ *  - Nakam bhejna (button na mila waghera) → 60s baad dobara koshish,
+ *    kul 3 dafa; phir aakhri report.
+ *  - Triggers: exact alarm, BOOT, USER_PRESENT, conversation END
+ *    (VoiceService.stopConversation), app khulna (MainActivity) —
+ *    pending kahin atak nahi sakta.
  */
 public class WaSchedReceiver extends BroadcastReceiver {
 
     public static final String ACTION_FIRE = "com.mujahid.myagent.WA_SCHED_FIRE";
     private static final String CHANNEL = "ayesha_wa_sched";
     private static final AtomicBoolean RUNNING = new AtomicBoolean(false);
+    private static final int MAX_SEND_ATTEMPTS = 3;
+    private static final int MAX_LOCK_TRIES = 40; // ~1 ghanta retry, phir sirf unlock/app trigger
 
     @Override
     public void onReceive(Context ctx, Intent intent) {
@@ -39,11 +48,10 @@ public class WaSchedReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
             WaSchedStore.rescheduleAll(ctx);
         }
-        // FIRE / BOOT / USER_PRESENT — teeno par due messages check karo
         flushDue(ctx);
     }
 
-    /** Due messages ek ek karke bhejo (background thread + WakeLock). */
+    /** Due messages ek ek karke — koi hold nahi, seedha firing. */
     public static void flushDue(final Context ctx) {
         final List<WaSchedStore.Entry> due = WaSchedStore.dueList(ctx);
         if (due.isEmpty()) return;
@@ -58,43 +66,50 @@ public class WaSchedReceiver extends BroadcastReceiver {
         new Thread(() -> {
             try {
                 for (WaSchedStore.Entry e : due) {
-                    // 1) Live guftagu? Screen hijack nahi — intezar karo
-                    int waited = 0;
-                    while (VoiceService.isConversationOn() && waited < 150_000) {
-                        sleep(5000);
-                        waited += 5000;
-                    }
-                    if (VoiceService.isConversationOn()) {
-                        notifyResult(app, e, "WhatsApp message roka gaya",
-                                e.contact + " ko message bhejna tha lekin hamari "
-                                        + "guftagu chal rahi thi — free hote hi "
-                                        + "bhej dungi, schedule mehfooz hai.");
-                        break; // baqi bhi abhi rukenge
-                    }
-                    // 2) Lock? Bhejna mumkin nahi — pending rakho
+                    // 1) Lock hai? Pehle screen jagao / lock khulwao
                     KeyguardManager km = (KeyguardManager)
                             app.getSystemService(Context.KEYGUARD_SERVICE);
                     if (km != null && km.isKeyguardLocked()) {
-                        notifyResult(app, e, "WhatsApp message pending hai",
-                                e.contact + " ko message bhejna tha lekin phone "
-                                        + "locked hai — unlock karte hi foran "
-                                        + "bhej dungi.");
-                        break; // lock sab ke liye ek hai
+                        int tries = WaSchedStore.bumpTries(app, e.id);
+                        // WakeActivity: screen ON + swipe lock dismiss;
+                        // secure lock par unlock ki darkhwast samne
+                        Intent wi = new Intent(app, WakeActivity.class);
+                        wi.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        ForegroundOpen.open(app, wi, "Ayesha — message ka waqt ho gaya");
+                        if (tries == 1) {
+                            notifyResult(app, e, "WhatsApp message ka waqt ho gaya",
+                                    e.contact + " ko message bhejna hai — phone "
+                                            + "unlock hote hi foran chala jayega.");
+                        }
+                        if (tries < MAX_LOCK_TRIES) {
+                            WaSchedStore.scheduleRetry(app, e.id, 60_000L);
+                        }
+                        break; // lock sab entries ke liye ek hai
                     }
-                    // 3) Bhejo — purana azmaya hua WhatsAppAction
+                    // 2) SEEDHA BHEJO — Live ho ya kuch bhi, koi intezar nahi
                     WhatsAppAction.Result r =
                             WhatsAppAction.sendToNumber(app, e.number, e.text);
                     boolean sent = r != null && r.reply != null
                             && r.reply.startsWith("Bhej diya");
-                    WaSchedStore.remove(app, e.id);
                     try { A11yService.goHome(); } catch (Exception ignored) { }
                     if (sent) {
+                        WaSchedStore.remove(app, e.id);
                         notifyResult(app, e, "WhatsApp message chala gaya",
                                 e.contact + " ko: '" + e.text + "'");
                     } else {
-                        notifyResult(app, e, "WhatsApp message nahi gaya",
-                                e.contact + " ko message nahi ja saka — "
-                                        + (r == null ? "" : r.reply));
+                        int att = WaSchedStore.bumpAtt(app, e.id);
+                        if (att < MAX_SEND_ATTEMPTS) {
+                            WaSchedStore.scheduleRetry(app, e.id, 60_000L);
+                            notifyResult(app, e, "WhatsApp message — dobara koshish hogi",
+                                    e.contact + " ko pehli koshish me nahi gaya ("
+                                            + (r == null ? "" : r.reply)
+                                            + ") — 1 minute me khud dobara bhejungi.");
+                        } else {
+                            WaSchedStore.remove(app, e.id);
+                            notifyResult(app, e, "WhatsApp message nahi gaya",
+                                    e.contact + " ko 3 koshishon ke baad bhi nahi "
+                                            + "gaya — " + (r == null ? "" : r.reply));
+                        }
                     }
                     sleep(2000); // agle se pehle saans
                 }
@@ -128,6 +143,7 @@ public class WaSchedReceiver extends BroadcastReceiver {
                     .setStyle(new Notification.BigTextStyle().bigText(body))
                     .setContentIntent(pi)
                     .setAutoCancel(true)
+                    .setOnlyAlertOnce(true)
                     .build();
             nm.notify(4500 + (int) (e.id % 400), n);
         } catch (Exception ignored) { }

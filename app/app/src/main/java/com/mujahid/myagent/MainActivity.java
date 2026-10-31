@@ -38,6 +38,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        // v97: app khulte hi pending scheduled messages ka check
+        try { WaSchedReceiver.flushDue(this); } catch (Exception ignored) { }
         setContentView(R.layout.activity_main);
         Themes.tint(this); // v51 "Rang": user ki pasand ka theme
 
