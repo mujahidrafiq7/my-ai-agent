@@ -721,6 +721,10 @@ public class VoiceService extends Service {
         stopRecorderQuiet();
         recording = false;
         emitStatus("ready");
+        // v97: v96 wali ghalti ka ilaaj — guftagu khatam hote hi agar
+        // koi scheduled message pending ho to USI PAL bhej do (pehle
+        // yahan koi trigger hi nahi tha, message mar jata tha)
+        try { WaSchedReceiver.flushDue(this); } catch (Exception ignored) { }
     }
 
     /** Mic kholo + khamoshi-pehchan: bolo → 2.5s chup → turn khatam.
