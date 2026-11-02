@@ -84,6 +84,8 @@ public class PickerActivity extends Activity {
             buildWeather(root);
         } else if (kind.equals("keys")) {
             buildKeys(root);
+        } else if (kind.equals("channels")) {
+            buildChannels(root);
         } else {
             buildList(root);
         }
@@ -182,6 +184,67 @@ public class PickerActivity extends Activity {
 
     // ---------- keys wala page ----------
 
+    /** v99: Channel Analytics credentials — YouTube + Facebook vault. */
+    private void buildChannels(LinearLayout root) {
+        String[] labels = {
+                "YouTube API Key (Google Cloud / AI Studio nahi — Data API v3)",
+                "YouTube Channel ID (UC... se shuru)",
+                "YouTube OAuth Token (sirf retention ke liye — abhi khali chhor sakte ho)",
+                "Facebook Page ID",
+                "Facebook Page Access Token"};
+        String[] hints = {
+                "Paste YouTube API key here",
+                "Paste channel ID here",
+                "Paste OAuth access token here (optional)",
+                "Paste Page ID here",
+                "Paste Page token here"};
+        String[] values = {
+                Keys.youtubeApiKey(this), Keys.youtubeChannelId(this),
+                Keys.youtubeOauthToken(this), Keys.facebookPageId(this),
+                Keys.facebookPageToken(this)};
+        final java.util.List<EditText> inputs = new java.util.ArrayList<>();
+        for (int i = 0; i < labels.length; i++) {
+            TextView label = new TextView(this);
+            label.setText(labels[i]);
+            label.setTextColor(hintC);
+            label.setTextSize(13);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = dp(10);
+            lp.bottomMargin = dp(5);
+            root.addView(label, lp);
+            EditText in = keyField(hints[i]);
+            in.setText(values[i]);
+            root.addView(in);
+            inputs.add(in);
+        }
+        TextView save = new TextView(this);
+        save.setText("Save");
+        save.setTextColor(bg);
+        save.setTextSize(16);
+        save.setTypeface(null, android.graphics.Typeface.BOLD);
+        save.setGravity(Gravity.CENTER);
+        save.setPadding(dp(16), dp(14), dp(16), dp(14));
+        save.setBackground(box(accent, 14));
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        sp.topMargin = dp(18);
+        root.addView(save, sp);
+        save.setOnClickListener(v -> {
+            Keys.saveChannels(this,
+                    inputs.get(0).getText().toString(),
+                    inputs.get(1).getText().toString(),
+                    inputs.get(2).getText().toString(),
+                    inputs.get(3).getText().toString(),
+                    inputs.get(4).getText().toString());
+            android.widget.Toast.makeText(this,
+                    "Channel credentials saved.", android.widget.Toast.LENGTH_SHORT).show();
+            finish();
+        });
+    }
+
     private void buildKeys(LinearLayout root) {
         final java.util.List<EditText> inputs = new java.util.ArrayList<>();
         for (int i = 1; i <= Keys.MAX_KEYS; i++) {
@@ -265,6 +328,7 @@ public class PickerActivity extends Activity {
             case "emotion": return "Emotion";
             case "weather": return "Weather API Key";
             case "keys": return "Keys";
+            case "channels": return "Channel Analytics";
             default: return "Personality";
         }
     }
@@ -276,6 +340,7 @@ public class PickerActivity extends Activity {
             case "emotion": return "Choose Ayesha's mood.";
             case "weather": return "For live weather. The key stays on this phone.";
             case "keys": return "Stored only on this phone. Make each Gemini key from a different Gmail.";
+            case "channels": return "Stored only on this phone. YouTube: API key + Channel ID (OAuth token sirf retention ke liye). Facebook: Page ID + Page Access Token.";
             default: return "Choose a style — Ayesha will speak in that tone.";
         }
     }

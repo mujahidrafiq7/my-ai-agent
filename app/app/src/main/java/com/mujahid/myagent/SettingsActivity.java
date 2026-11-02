@@ -340,6 +340,7 @@ public class SettingsActivity extends Activity {
     private TextView emoValue;
     private TextView wxStatus;
     private TextView keyStatus;
+    private TextView chanStatus;
     private int shownThemeIdx = -1;
 
     private void openPicker(String kind) {
@@ -357,6 +358,7 @@ public class SettingsActivity extends Activity {
         if (wxStatus != null) wxStatus.setText(
                 LiveContext.weatherKey(this).isEmpty() ? "(not set)" : "(set ✓)");
         if (keyStatus != null) keyStatus.setText(keyStatusText());
+        if (chanStatus != null) chanStatus.setText(chanStatusText());
         if (shownThemeIdx >= 0 && Themes.index(this) != shownThemeIdx) {
             shownThemeIdx = Themes.index(this);
             recreate(); // naye theme rangon se dobara banao (purane dialog jaisa)
@@ -370,6 +372,18 @@ public class SettingsActivity extends Activity {
         int n = Keys.geminiKeys(this).size();
         String g = Keys.groqKey(this);
         return "(" + n + " Gemini" + (g.isEmpty() ? "" : " + Groq") + " set)";
+    }
+
+    /** v99: Channel Analytics setup ki halat. */
+    private String chanStatusText() {
+        boolean yt = !Keys.youtubeApiKey(this).isEmpty()
+                && !Keys.youtubeChannelId(this).isEmpty();
+        boolean fb = !Keys.facebookPageId(this).isEmpty()
+                && !Keys.facebookPageToken(this).isEmpty();
+        if (yt && fb) return "(YouTube ✓ · Facebook ✓)";
+        if (yt) return "(YouTube ✓)";
+        if (fb) return "(Facebook ✓)";
+        return "(not set)";
     }
 
     @Override
@@ -498,6 +512,13 @@ public class SettingsActivity extends Activity {
         keyCard.addView(keyStatus);
         keyCard.setOnClickListener(v -> openPicker("keys"));
         root.addView(keyCard);
+
+        // v99: Channel Analytics — YouTube/Facebook credentials vault
+        LinearLayout chanCard = settingCard("Channel Analytics", "tap to open");
+        chanStatus = valueLabel(chanStatusText());
+        chanCard.addView(chanStatus);
+        chanCard.setOnClickListener(v -> openPicker("channels"));
+        root.addView(chanCard);
 
         // v94: Notification Access — ek tap se Android ki settings
         LinearLayout notifCard = settingCard("Notification Access",
