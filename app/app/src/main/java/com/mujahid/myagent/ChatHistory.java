@@ -52,6 +52,9 @@ public class ChatHistory {
 
     /** Ek nayi baat joro (purani 60 se zyada hon to sab se purani hatao). */
     public static void append(Context ctx, String role, String text) {
+        // v98: pehle SQLite Deep Memory me (migration file se pehle
+        // chalti hai — is entry ki dohari entry nahi banti)
+        try { MemoryDb.addSingle(ctx, role, text); } catch (Exception ignored) { }
         try {
             List<Entry> all = load(ctx);
             all.add(new Entry(role, text, System.currentTimeMillis()));

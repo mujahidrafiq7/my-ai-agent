@@ -352,6 +352,9 @@ public class LiveContext {
 
     /** Har turn save karo — uski baat + uska jawab + waqt. */
     public static void logTurn(Context ctx, String userText, String aiText) {
+        // v98: pehle SQLite Deep Memory me (uncropped) — migration bhi
+        // yahin se pehli dafa chalti hai, is liye prefs se PEHLE
+        try { MemoryDb.addTurnPair(ctx, userText, aiText); } catch (Exception ignored) { }
         try {
             SharedPreferences p = ctx.getSharedPreferences("turn_log", Context.MODE_PRIVATE);
             JSONArray arr = new JSONArray(p.getString("turns", "[]"));
