@@ -223,8 +223,13 @@ public class VoiceService extends Service {
         Notification n = buildNotification(text, null, null);
         try {
             if (Build.VERSION.SDK_INT >= 29) {
-                startForeground(NOTIF_ID, n,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+                int types = ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE;
+                // v99: camera vision ke liye — permission ho to type joro
+                if (checkSelfPermission(Manifest.permission.CAMERA)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    types |= ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA;
+                }
+                startForeground(NOTIF_ID, n, types);
             } else {
                 startForeground(NOTIF_ID, n);
             }
@@ -524,6 +529,14 @@ public class VoiceService extends Service {
             boolean announced = false;
             while (streaming && conversationOn && liveTalk != null) {
                 try {
+                    // v99: camera ON ho to camera frames — screen frames ruk
+                    if (CameraVision.isOn()) {
+                        String cf = CameraVision.latestFrame();
+                        LiveTalk clt = liveTalk;
+                        if (cf != null && clt != null) clt.sendVideoFrame(cf);
+                        Thread.sleep(1100);
+                        continue;
+                    }
                     if (ScreenShare.isOn()) {
                         String b64 = AyeshaController.getScreenImageBase64();
                         LiveTalk lt = liveTalk;
@@ -562,7 +575,8 @@ public class VoiceService extends Service {
 
     private void handleLiveTurn(String text) {        if (text == null || text.trim().isEmpty() || !conversationOn) return;
         final String said = text.trim();
-        toast("Suna: " + RomanUrdu.toRoman(said)); // hamesha Roman Urdu me dikhao
+        // v99: "Suna:" subtitle toast KHATAM (user ki demand) — logging
+        // aur database saving background me waisi hi chalti hai
 
         // v39: Reminder — "yaad dilana" (phone khud schedule karta hai)
         Reminder.Parsed rp = Reminder.parse(said);
@@ -729,6 +743,8 @@ public class VoiceService extends Service {
         try { WaSchedReceiver.flushDue(this); } catch (Exception ignored) { }
         // v98: Deep Memory session band
         try { MemoryDb.closeSession(this); } catch (Exception ignored) { }
+        // v99: camera bhi band — resource latka na rahe
+        try { CameraVision.stop(); } catch (Exception ignored) { }
     }
 
     /** Mic kholo + khamoshi-pehchan: bolo → 2.5s chup → turn khatam.
@@ -835,7 +851,8 @@ public class VoiceService extends Service {
                 if (userText == null || userText.trim().isEmpty())
                     throw new Exception("Heard nothing — speak near the mic.");
                 final String said = userText.trim();
-                toast("Suna: " + RomanUrdu.toRoman(said)); // hamesha Roman Urdu me dikhao
+                // v99: "Suna:" subtitle toast KHATAM — screen par koi
+                // transcript pop-up nahi; saving background me jari
 
                 // v39: Reminder — "yaad dilana" (phone khud schedule karta hai)
                 Reminder.Parsed rp = Reminder.parse(said);

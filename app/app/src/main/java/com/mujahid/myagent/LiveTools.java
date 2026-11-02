@@ -322,6 +322,27 @@ public class LiveTools {
                     return MemoryDb.recall(ctx, rQuery, rRange[0], rRange[1], rSpeaker);
                 }
 
+                // v99: Camera Vision — headless, Live session se bandha
+                case "start_camera_stream":
+                    return CameraVision.start(ctx,
+                            a.optString("facing", "rear"));
+                case "stop_camera_stream":
+                    CameraVision.stop();
+                    return "Camera band kar diya boss — ab main nahi dekh rahi.";
+                case "switch_camera":
+                    return CameraVision.switchTo(ctx,
+                            a.optString("facing", "front"));
+
+                // v99: Channel Analytics — background API data
+                case "get_youtube_analytics":
+                    return ChannelClients.youtube(ctx,
+                            a.optString("metric_type", "overview"),
+                            a.optInt("days", 28));
+                case "get_facebook_insights":
+                    return ChannelClients.facebook(ctx,
+                            a.optString("metric_type", "overview"),
+                            a.optInt("days", 7));
+
                 // v98.2: Deep Memory diagnostic — asal ginti
                 case "get_memory_status":
                     return MemoryDb.statusText(ctx);
