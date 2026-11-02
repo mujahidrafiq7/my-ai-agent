@@ -37,6 +37,31 @@ public class LiveTools {
         return c.getTimeInMillis();
     }
 
+    /** v98: recall ke liye date range (Asia/Karachi) — [from, to]. */
+    private static long[] recallRange(String range) {
+        java.util.TimeZone tz = java.util.TimeZone.getTimeZone("Asia/Karachi");
+        java.util.Calendar c = java.util.Calendar.getInstance(tz);
+        c.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        c.set(java.util.Calendar.MINUTE, 0);
+        c.set(java.util.Calendar.SECOND, 0);
+        c.set(java.util.Calendar.MILLISECOND, 0);
+        long today = c.getTimeInMillis();
+        long day = 24L * 3600_000L;
+        if (range == null) range = "all";
+        switch (range.trim().toLowerCase(java.util.Locale.US)) {
+            case "today":
+                return new long[]{today, today + day - 1};
+            case "yesterday":
+                return new long[]{today - day, today - 1};
+            case "last_7_days":
+                return new long[]{today - 6 * day, today + day - 1};
+            case "last_30_days":
+                return new long[]{today - 29 * day, today + day - 1};
+            default:
+                return new long[]{0, Long.MAX_VALUE};
+        }
+    }
+
     private static int[] realSize(Context ctx) {
         try {
             android.view.WindowManager wm = (android.view.WindowManager)
@@ -283,6 +308,18 @@ public class LiveTools {
                                     + "karke bhej dungi."
                             : "Boss, wo notification khul nahi saki — shayad "
                                     + "ab wo wahan nahi rahi.";
+                }
+
+                // v98: Deep Memory recall — database se asal guftagu
+                case "recall_conversation": {
+                    String rQuery = a.optString("query", "");
+                    long[] rRange = recallRange(a.optString("date_range", "all"));
+                    String rSp = a.optString("speaker", "both")
+                            .toLowerCase(java.util.Locale.US);
+                    String rSpeaker = rSp.startsWith("user") || rSp.startsWith("boss")
+                            ? "user"
+                            : rSp.startsWith("ayesha") ? "ayesha" : "";
+                    return MemoryDb.recall(ctx, rQuery, rRange[0], rRange[1], rSpeaker);
                 }
 
                 // v96: WhatsApp scheduled messages
