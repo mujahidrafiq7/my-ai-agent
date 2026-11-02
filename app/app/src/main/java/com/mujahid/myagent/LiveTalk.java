@@ -778,6 +778,49 @@ public class LiveTalk {
                         .put("query", strProp("Key words of the topic he is asking about"))
                         .put("date_range", strProp("today | yesterday | last_7_days | last_30_days | all"))
                         .put("speaker", strProp("user | ayesha | both"))));
+        // v99: Camera Vision tools
+        decls.put(decl("start_camera_stream",
+                "Turn ON the phone camera (headless, no preview on screen) "
+                + "and stream its view into this conversation so you can "
+                + "SEE. facing: 'rear' for the world in front of him, "
+                + "'front' for his face. Use when he says 'camera on karo', "
+                + "'back camera on karo aur dekho samne kya hai'. After it "
+                + "starts, wait a moment, look at the frames you receive "
+                + "and describe what you see.",
+                new JSONObject()
+                        .put("facing", strProp("front | rear"))));
+        decls.put(decl("stop_camera_stream",
+                "Turn the camera OFF and release it. Use when he says "
+                + "'camera band kar do'.",
+                new JSONObject()));
+        decls.put(decl("switch_camera",
+                "Switch the running camera between front and rear. "
+                + "facing: 'front' | 'rear'.",
+                new JSONObject()
+                        .put("facing", strProp("front | rear"))));
+        // v99: Channel Analytics tools
+        decls.put(decl("get_youtube_analytics",
+                "Fetch his YouTube channel data in the BACKGROUND (no "
+                + "screen share): subscribers, total views, top videos. "
+                + "metric_type: 'overview' | 'top_videos' | 'retention' "
+                + "(retention/watch-time needs the OAuth token saved in "
+                + "Settings). days = period, default 28. If setup is "
+                + "missing the tool tells you exactly what he must add in "
+                + "Settings > Channel Analytics — relay that, never invent "
+                + "numbers.",
+                new JSONObject()
+                        .put("metric_type", strProp("overview | top_videos | retention"))
+                        .put("days", numProp("Period in days (default 28)"))));
+        decls.put(decl("get_facebook_insights",
+                "Fetch his Facebook Page data in the BACKGROUND (no screen "
+                + "share): followers, reach, page views and recent post "
+                + "performance. days = period, default 7. If setup is "
+                + "missing the tool tells you exactly what he must add in "
+                + "Settings > Channel Analytics — relay that, never invent "
+                + "numbers.",
+                new JSONObject()
+                        .put("metric_type", strProp("overview | posts | reach"))
+                        .put("days", numProp("Period in days (default 7)"))));
         // v98.2: Deep Memory diagnostic — database ki asal ginti
         decls.put(decl("get_memory_status",
                 "Report the REAL state of your memory database: how many "
