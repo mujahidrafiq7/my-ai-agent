@@ -299,6 +299,27 @@ public class LiveTalk {
                         }
                     }
                 }
+                // v98.2 ASAL FIX: transcriptions serverContent ke ANDAR
+                // aati hain (Live API ka asal format) — v40 se ye code
+                // sirf top-level par dhoondh raha tha, is liye transcript
+                // kabhi jama hi nahi hua aur logTurn hamesha khali gaya.
+                // Pehle ye bug diary ko khali rakhta tha, v98 me is ne
+                // database ko bhi zero rakha. Ab turnComplete se PEHLE
+                // yahin se jama karo.
+                if (sc.has("inputTranscription")) {
+                    String t = sc.getJSONObject("inputTranscription")
+                            .optString("text", "");
+                    if (!t.isEmpty()) {
+                        accumInput(t);
+                        final String cur = curInput.toString();
+                        safe(() -> listener.onInputText(cur));
+                    }
+                }
+                if (sc.has("outputTranscription")) {
+                    String t = sc.getJSONObject("outputTranscription")
+                            .optString("text", "");
+                    if (!t.isEmpty()) accumOutput(t);
+                }
                 if (sc.optBoolean("turnComplete", false)) {
                     String full, out;
                     synchronized (lock) {
@@ -307,8 +328,9 @@ public class LiveTalk {
                         out = curOutput.toString().trim();
                         curOutput.setLength(0);
                     }
-                    // v40: guftagu log karo (date/time ke saath) — kabhi na bhoolne ke liye
-                    if (ctx != null && !full.isEmpty()) {
+                    // v40 + v98.2: guftagu log karo — koi bhi side khali
+                    // na ho to save (pehle sirf user-side shart thi)
+                    if (ctx != null && (!full.isEmpty() || !out.isEmpty())) {
                         final String lf = full, lo = out;
                         new Thread(() -> LiveContext.logTurn(ctx, lf, lo)).start();
                     }
@@ -756,6 +778,14 @@ public class LiveTalk {
                         .put("query", strProp("Key words of the topic he is asking about"))
                         .put("date_range", strProp("today | yesterday | last_7_days | last_30_days | all"))
                         .put("speaker", strProp("user | ayesha | both"))));
+        // v98.2: Deep Memory diagnostic — database ki asal ginti
+        decls.put(decl("get_memory_status",
+                "Report the REAL state of your memory database: how many "
+                + "conversation turns and sessions are actually saved, and "
+                + "when the last turn was saved. Use when he asks whether "
+                + "memory is saving, or to check before a recall. Always "
+                + "report these exact numbers — never guess.",
+                new JSONObject()));
         // v96: WhatsApp scheduled messages
         decls.put(decl("schedule_whatsapp_message",
                 "Schedule a WhatsApp message to be SENT automatically at a "
