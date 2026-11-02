@@ -149,6 +149,8 @@ public final class Prompts {
             + "recall_conversation to fetch the exact turns and answer "
             + "from them. If the diary block above does not have it, "
             + "the database does — never guess a past conversation. "
+            + "get_memory_status gives the REAL saved-turns count — "
+            + "use it when he asks if memory is working. "
             + "WHATSAPP MESSAGE — NOW or LATER (v96): if he says send a "
             + "WhatsApp message NOW ('abhi Ali ko message kar do'), use "
             + "send_whatsapp_message. If he says to send it at a FUTURE "

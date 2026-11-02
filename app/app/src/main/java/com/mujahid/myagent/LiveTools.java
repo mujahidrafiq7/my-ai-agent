@@ -322,6 +322,10 @@ public class LiveTools {
                     return MemoryDb.recall(ctx, rQuery, rRange[0], rRange[1], rSpeaker);
                 }
 
+                // v98.2: Deep Memory diagnostic — asal ginti
+                case "get_memory_status":
+                    return MemoryDb.statusText(ctx);
+
                 // v96: WhatsApp scheduled messages
                 case "schedule_whatsapp_message": {
                     String wContact = a.optString("contact", "").trim();

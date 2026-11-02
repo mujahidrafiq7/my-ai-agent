@@ -40,6 +40,8 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         // v97: app khulte hi pending scheduled messages ka check
         try { WaSchedReceiver.flushDue(this); } catch (Exception ignored) { }
+        // v98.2: Deep Memory database ki startup verification
+        new Thread(() -> MemoryDb.verify(this)).start();
         setContentView(R.layout.activity_main);
         Themes.tint(this); // v51 "Rang": user ki pasand ka theme
 

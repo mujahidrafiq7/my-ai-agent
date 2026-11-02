@@ -148,10 +148,10 @@ public final class MemoryDb extends SQLiteOpenHelper {
         cv.put("text", text);
         cv.put("source", source);
         long row = db.insert("turns", null, cv);
-        // v98.1: har asal insert ki Logcat tasdeeq (import par khamosh)
+        // v98.2: write ka Logcat saboot — user ki di hui format
         if ("live".equals(source) || "chat".equals(source)) {
-            android.util.Log.d("MemoryDb", "Turn saved successfully for speaker: "
-                    + speaker + " (row " + row + ")");
+            android.util.Log.d("MemoryDb", "Turn saved: Speaker=" + speaker
+                    + ", Text=" + text);
         }
     }
 
@@ -326,20 +326,20 @@ public final class MemoryDb extends SQLiteOpenHelper {
                     if (t.length() >= 3 && words.size() < 5) words.add(t);
                 }
             }
-            List<String[]> rows = search(db, words, fromMs, toMs, speaker, true);
-            if (rows.isEmpty() && words.size() > 1) {
-                rows = search(db, words, fromMs, toMs, speaker, false);
-            }
-            // v98.1 FALLBACK: date/lafz filter se kuch na mile to sab se
-            // taaza 50 turns bina kisi filter ke — date/time khud saamne
-            // honge, ghalat "koi baat nahi hui" wala jawab khatam
-            boolean fellBack = false;
-            if (rows.isEmpty()) {
-                rows = search(db, new ArrayList<>(), 0, Long.MAX_VALUE, "", true);
-                if (rows.size() > 50) {
-                    rows = new ArrayList<>(rows.subList(rows.size() - 50, rows.size()));
+            // v98.2: DATE FILTERS KHATAM — timezone mismatch search ko
+            // khali kar deta tha. Alfaaz hon to POORI history me search;
+            // warna / na mile to seedha aakhri 30 turns (ORDER BY id DESC).
+            List<String[]> rows = new ArrayList<>();
+            boolean searched = false;
+            if (!words.isEmpty()) {
+                rows = search(db, words, 0, Long.MAX_VALUE, speaker, true);
+                if (rows.isEmpty() && words.size() > 1) {
+                    rows = search(db, words, 0, Long.MAX_VALUE, speaker, false);
                 }
-                fellBack = !rows.isEmpty();
+                searched = !rows.isEmpty();
+            }
+            if (rows.isEmpty()) {
+                rows = latest(db, 30);
             }
             long total = countTurns(db);
             if (rows.isEmpty()) {
@@ -349,13 +349,13 @@ public final class MemoryDb extends SQLiteOpenHelper {
             SimpleDateFormat df = pkt("d MMM yyyy");
             SimpleDateFormat tf = pkt("h:mm a");
             StringBuilder sb = new StringBuilder();
-            if (fellBack) {
-                sb.append("Us query/date me kuch nahi mila, lekin database "
-                        + "me kul ").append(total).append(" turns mehfooz "
-                        + "hain — ye sab se TAAZA guftagu hai (dates khud "
-                        + "dekh lo):\n");
+            if (searched) {
+                sb.append("Database se ").append(rows.size()).append(" turns mile "
+                        + "(kul ").append(total).append(" turns mehfooz hain):\n");
             } else {
-                sb.append("Database se ").append(rows.size()).append(" turns mile:\n");
+                sb.append("Ye database ki sab se TAAZA guftagu hai — aakhri ")
+                        .append(rows.size()).append(" turns (kul ").append(total)
+                        .append(" turns mehfooz hain):\n");
             }
             int used = 0;
             String lastDay = "";
@@ -377,6 +377,97 @@ public final class MemoryDb extends SQLiteOpenHelper {
             return sb.toString().trim();
         } catch (Exception e) {
             return "Database parhne me masla aya boss.";
+        }
+    }
+
+    /** v98.2: seedha latest — SELECT ... ORDER BY id DESC LIMIT n, phir tarteeb se. */
+    private static List<String[]> latest(SQLiteDatabase db, int n) {
+        List<String[]> out = new ArrayList<>();
+        Cursor c = null;
+        try {
+            c = db.rawQuery("SELECT ts, speaker, text FROM turns "
+                    + "ORDER BY id DESC LIMIT " + n, null);
+            List<String[]> desc = new ArrayList<>();
+            if (c != null) {
+                while (c.moveToNext()) {
+                    desc.add(new String[]{String.valueOf(c.getLong(0)),
+                            c.getString(1), c.getString(2)});
+                }
+            }
+            for (int i = desc.size() - 1; i >= 0; i--) out.add(desc.get(i));
+        } catch (Exception ignored) {
+        } finally {
+            if (c != null) c.close();
+        }
+        return out;
+    }
+
+    // ---------- v98.2: startup verification + diagnostic ----------
+
+    /** App/service start par: DB kholo, tables check karo, Logcat me report. */
+    public static String verify(Context ctx) {
+        try {
+            ready(ctx);
+            SQLiteDatabase db = get(ctx).getReadableDatabase();
+            boolean sOk = tableExists(db, "sessions");
+            boolean tOk = tableExists(db, "turns");
+            long turns = countTurns(db);
+            android.util.Log.d("MemoryDb", "Startup check — sessions table: "
+                    + sOk + ", turns table: " + tOk + ", total turns: " + turns);
+            return "sessions table: " + (sOk ? "OK" : "MISSING")
+                    + ", turns table: " + (tOk ? "OK" : "MISSING")
+                    + ", total turns: " + turns;
+        } catch (Exception e) {
+            android.util.Log.e("MemoryDb", "verify FAILED", e);
+            return "Database check fail ho gaya boss: " + e.getMessage();
+        }
+    }
+
+    private static boolean tableExists(SQLiteDatabase db, String name) {
+        Cursor c = null;
+        try {
+            c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' "
+                    + "AND name=?", new String[]{name});
+            return c != null && c.moveToFirst();
+        } catch (Exception e) {
+            return false;
+        } finally {
+            if (c != null) c.close();
+        }
+    }
+
+    /** get_memory_status tool ke liye: asal ginti + aakhri turn ka waqt. */
+    public static String statusText(Context ctx) {
+        try {
+            ready(ctx);
+            SQLiteDatabase db = get(ctx).getReadableDatabase();
+            long turns = countTurns(db);
+            long sessions = 0;
+            long lastTs = 0;
+            Cursor c = null;
+            try {
+                c = db.rawQuery("SELECT COUNT(*) FROM sessions", null);
+                if (c != null && c.moveToFirst()) sessions = c.getLong(0);
+            } catch (Exception ignored) {
+            } finally {
+                if (c != null) c.close();
+            }
+            c = null;
+            try {
+                c = db.rawQuery("SELECT ts FROM turns ORDER BY id DESC LIMIT 1", null);
+                if (c != null && c.moveToFirst()) lastTs = c.getLong(0);
+            } catch (Exception ignored) {
+            } finally {
+                if (c != null) c.close();
+            }
+            String last = lastTs > 0
+                    ? pkt("d MMM yyyy, h:mm a").format(new Date(lastTs))
+                    : "koi turn nahi";
+            return "Deep Memory database status — kul turns: " + turns
+                    + ", kul sessions: " + sessions
+                    + ", sab se aakhri saved turn: " + last + ".";
+        } catch (Exception e) {
+            return "Database status parhne me masla aya boss.";
         }
     }
 
