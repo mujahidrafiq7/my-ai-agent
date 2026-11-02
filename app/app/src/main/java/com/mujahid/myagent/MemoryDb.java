@@ -66,6 +66,7 @@ public final class MemoryDb extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX idx_turns_ts ON turns(ts)");
         db.execSQL("CREATE INDEX idx_turns_session ON turns(session_id)");
         db.execSQL("CREATE INDEX idx_turns_speaker ON turns(speaker)");
+        android.util.Log.d("MemoryDb", "Database created — sessions + turns tables ready");
     }
 
     @Override
@@ -146,7 +147,12 @@ public final class MemoryDb extends SQLiteOpenHelper {
         cv.put("speaker", speaker);
         cv.put("text", text);
         cv.put("source", source);
-        db.insert("turns", null, cv);
+        long row = db.insert("turns", null, cv);
+        // v98.1: har asal insert ki Logcat tasdeeq (import par khamosh)
+        if ("live".equals(source) || "chat".equals(source)) {
+            android.util.Log.d("MemoryDb", "Turn saved successfully for speaker: "
+                    + speaker + " (row " + row + ")");
+        }
     }
 
     /** Live guftagu ka ek turn (Boss + Ayesha) — uncropped. */
@@ -156,9 +162,20 @@ public final class MemoryDb extends SQLiteOpenHelper {
             SQLiteDatabase db = get(ctx).getWritableDatabase();
             long sid = ensureSession(ctx, db, "live");
             long now = System.currentTimeMillis();
-            insertTurn(db, sid, now, "user", userText, "live");
-            insertTurn(db, sid, now, "ayesha", aiText, "live");
-        } catch (Exception ignored) { }
+            // v98.1: explicit transaction — commit pakka, process kill
+            // ho jaye to bhi likha hua turn mehfooz
+            db.beginTransaction();
+            try {
+                insertTurn(db, sid, now, "user", userText, "live");
+                insertTurn(db, sid, now, "ayesha", aiText, "live");
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
+            }
+        } catch (Exception e) {
+            // v98.1: khamosh ignore NAHI — Logcat me wajah
+            android.util.Log.e("MemoryDb", "addTurnPair FAILED", e);
+        }
     }
 
     /** Chat mode ka ek turn. role: "user" ya "model". */
@@ -169,7 +186,9 @@ public final class MemoryDb extends SQLiteOpenHelper {
             long sid = ensureSession(ctx, db, "chat");
             insertTurn(db, sid, System.currentTimeMillis(),
                     "user".equals(role) ? "user" : "ayesha", text, "chat");
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            android.util.Log.e("MemoryDb", "addSingle FAILED", e);
+        }
     }
 
     // ---------- migration (pehli dafa, zero loss) ----------
@@ -181,10 +200,37 @@ public final class MemoryDb extends SQLiteOpenHelper {
         migrated = true;
         try {
             SQLiteDatabase db = get(ctx).getWritableDatabase();
+            // v98.1: self-check — tables mawjud na hon to yahin bana do
+            db.execSQL("CREATE TABLE IF NOT EXISTS sessions ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + "started_at INTEGER NOT NULL, "
+                    + "ended_at INTEGER DEFAULT 0, mode TEXT NOT NULL)");
+            db.execSQL("CREATE TABLE IF NOT EXISTS turns ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + "session_id INTEGER NOT NULL, ts INTEGER NOT NULL, "
+                    + "speaker TEXT NOT NULL, text TEXT NOT NULL, "
+                    + "source TEXT NOT NULL)");
             // turn_log (Live diary) import — pehle se import ho to skip
             if (!hasSource(db, "import-live")) importTurnLog(ctx, db);
             if (!hasSource(db, "import-chat")) importChatHistory(ctx, db);
-        } catch (Exception ignored) { }
+            android.util.Log.d("MemoryDb", "Ready check — turns table total rows: "
+                    + countTurns(db));
+        } catch (Exception e) {
+            android.util.Log.e("MemoryDb", "ready/migration FAILED", e);
+        }
+    }
+
+    /** v98.1: database me kul turns — diagnosis ke liye. */
+    private static long countTurns(SQLiteDatabase db) {
+        Cursor c = null;
+        try {
+            c = db.rawQuery("SELECT COUNT(*) FROM turns", null);
+            return (c != null && c.moveToFirst()) ? c.getLong(0) : 0;
+        } catch (Exception e) {
+            return -1;
+        } finally {
+            if (c != null) c.close();
+        }
     }
 
     private static boolean hasSource(SQLiteDatabase db, String source) {
@@ -284,14 +330,33 @@ public final class MemoryDb extends SQLiteOpenHelper {
             if (rows.isEmpty() && words.size() > 1) {
                 rows = search(db, words, fromMs, toMs, speaker, false);
             }
+            // v98.1 FALLBACK: date/lafz filter se kuch na mile to sab se
+            // taaza 50 turns bina kisi filter ke — date/time khud saamne
+            // honge, ghalat "koi baat nahi hui" wala jawab khatam
+            boolean fellBack = false;
             if (rows.isEmpty()) {
-                return "Database me is bare me koi guftagu nahi mili boss "
-                        + "(na is date range me, na in alfaaz se).";
+                rows = search(db, new ArrayList<>(), 0, Long.MAX_VALUE, "", true);
+                if (rows.size() > 50) {
+                    rows = new ArrayList<>(rows.subList(rows.size() - 50, rows.size()));
+                }
+                fellBack = !rows.isEmpty();
+            }
+            long total = countTurns(db);
+            if (rows.isEmpty()) {
+                return "Database bilkul khali hai boss — ek bhi turn "
+                        + "mehfooz nahi (kul turns: " + total + ").";
             }
             SimpleDateFormat df = pkt("d MMM yyyy");
             SimpleDateFormat tf = pkt("h:mm a");
             StringBuilder sb = new StringBuilder();
-            sb.append("Database se ").append(rows.size()).append(" turns mile:\n");
+            if (fellBack) {
+                sb.append("Us query/date me kuch nahi mila, lekin database "
+                        + "me kul ").append(total).append(" turns mehfooz "
+                        + "hain — ye sab se TAAZA guftagu hai (dates khud "
+                        + "dekh lo):\n");
+            } else {
+                sb.append("Database se ").append(rows.size()).append(" turns mile:\n");
+            }
             int used = 0;
             String lastDay = "";
             for (String[] r : rows) {
