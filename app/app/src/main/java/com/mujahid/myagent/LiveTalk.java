@@ -740,6 +740,22 @@ public class LiveTalk {
                 new JSONObject()
                         .put("app", strProp("Optional: app name, e.g. Gmail"))
                         .put("sender", strProp("Optional: sender name"))));
+        // v98: Deep Memory — database se purani guftagu recall
+        decls.put(decl("recall_conversation",
+                "Search your long-term memory DATABASE for past conversations "
+                + "and return the EXACT turns (word-by-word, with date and "
+                + "time). Use whenever he asks about anything said before — "
+                + "'kal shaam kya baat hui thi', 'acting classes ke bare me "
+                + "maine kya kaha tha', 'tum ne us din kya suggest kiya tha'. "
+                + "date_range: today | yesterday | last_7_days | last_30_days "
+                + "| all. speaker: 'user' = what HE said, 'ayesha' = what YOU "
+                + "said, 'both' = everyone. query = the key words of the "
+                + "topic (e.g. 'acting classes'). NEVER invent a past "
+                + "conversation — only report what this tool returns.",
+                new JSONObject()
+                        .put("query", strProp("Key words of the topic he is asking about"))
+                        .put("date_range", strProp("today | yesterday | last_7_days | last_30_days | all"))
+                        .put("speaker", strProp("user | ayesha | both"))));
         // v96: WhatsApp scheduled messages
         decls.put(decl("schedule_whatsapp_message",
                 "Schedule a WhatsApp message to be SENT automatically at a "

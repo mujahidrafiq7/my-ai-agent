@@ -292,6 +292,8 @@ public class VoiceService extends Service {
         emitStatus("listening");
         showEdgeLight();
         // v48: continuous streaming hata di — yahan listener ki zaroorat nahi
+        // v98: Deep Memory session shuru (SQLite)
+        try { MemoryDb.beginSession(this, "live"); } catch (Exception ignored) { }
         // v41: guftagu ke dauran error aaye to wo khud boli me bataye (fori report)
         Diag.setErrorListener((where, msg) -> {
             if (conversationOn && liveTalk != null) {
@@ -725,6 +727,8 @@ public class VoiceService extends Service {
         // koi scheduled message pending ho to USI PAL bhej do (pehle
         // yahan koi trigger hi nahi tha, message mar jata tha)
         try { WaSchedReceiver.flushDue(this); } catch (Exception ignored) { }
+        // v98: Deep Memory session band
+        try { MemoryDb.closeSession(this); } catch (Exception ignored) { }
     }
 
     /** Mic kholo + khamoshi-pehchan: bolo → 2.5s chup → turn khatam.
