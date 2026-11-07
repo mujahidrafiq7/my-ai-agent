@@ -299,6 +299,8 @@ public class VoiceService extends Service {
         // v48: continuous streaming hata di — yahan listener ki zaroorat nahi
         // v98: Deep Memory session shuru (SQLite)
         try { MemoryDb.beginSession(this, "live"); } catch (Exception ignored) { }
+        // v100: Session continuity log shuru
+        try { SessionLog.begin(this); } catch (Exception ignored) { }
         // v41: guftagu ke dauran error aaye to wo khud boli me bataye (fori report)
         Diag.setErrorListener((where, msg) -> {
             if (conversationOn && liveTalk != null) {
@@ -366,6 +368,7 @@ public class VoiceService extends Service {
             @Override public void onReady() {
                 if (gen != liveGen) return; // purana session — ignore
                 liveRetries = 0; // v89: jud gaya — reconnect ginti saaf
+                SessionLog.noteReconnect(VoiceService.this); // v100: gap record
                 emitStatus("live");
                 startStreamPump(); // v70: streaming engine
             }
@@ -396,6 +399,7 @@ public class VoiceService extends Service {
                     liveRetries++;
                     Diag.event("live silent reconnect #" + liveRetries
                             + " (" + why + ")");
+                    SessionLog.noteDrop(VoiceService.this, why); // v100
                     long delay = 1200L * liveRetries;
                     mainHandler.postDelayed(() -> {
                         if (gen == liveGen && conversationOn && liveWanted)
@@ -421,6 +425,7 @@ public class VoiceService extends Service {
                 if (now - lastGoAwayRestart < 20000) return; // loop hifazat
                 lastGoAwayRestart = now;
                 Diag.event("live goAway — seamless reconnect (handle ke sath)");
+                SessionLog.noteRehandshake(VoiceService.this); // v100
                 startLiveMode();
             }
         });
@@ -529,6 +534,7 @@ public class VoiceService extends Service {
             boolean announced = false;
             while (streaming && conversationOn && liveTalk != null) {
                 try {
+                    SessionLog.heartbeat(VoiceService.this); // v100 (10s throttle andar)
                     // v99: camera ON ho to camera frames — screen frames ruk
                     if (CameraVision.isOn()) {
                         String cf = CameraVision.latestFrame();
@@ -573,10 +579,48 @@ public class VoiceService extends Service {
         }
     }
 
+    /**
+     * v100 KILL-SWITCH: shutdown intent ki pehchan. Hifazat: agar
+     * jumle me koi cheez band karne ki baat ho (camera, screen,
+     * share, gaana...) to ye shutdown NAHI hai.
+     */
+    private static boolean isShutdownIntent(String s) {
+        if (s == null) return false;
+        String t = s.toLowerCase(java.util.Locale.US);
+        if (t.contains("camera") || t.contains("screen") || t.contains("share")
+                || t.contains("mic") || t.contains("gaana") || t.contains("song")
+                || t.contains("video") || t.contains("light")
+                || t.contains("notification") || t.contains("tasveer")) {
+            return false;
+        }
+        String[] strong = {"ayesha off", "aisha off", "off ho jao", "off hojao",
+                "band ho jao", "band hojao", "goodbye", "good bye",
+                "tum off ho jao", "ayesha band", "app band kar do",
+                "app band kardo", "off kar do mujhe nahi"};
+        for (String p : strong) if (t.contains(p)) return true;
+        if (t.trim().length() <= 35) {
+            String[] shortOnes = {"bye", "allah hafiz", "off ho ja",
+                    "band ho ja", "so jao", "band karo ayesha"};
+            for (String p : shortOnes) if (t.contains(p)) return true;
+        }
+        return false;
+    }
+
     private void handleLiveTurn(String text) {        if (text == null || text.trim().isEmpty() || !conversationOn) return;
         final String said = text.trim();
         // v99: "Suna:" subtitle toast KHATAM (user ki demand) — logging
         // aur database saving background me waisi hi chalti hai
+
+        // v100 KILL-SWITCH: shutdown intent — mukhtasar Allah Hafiz,
+        // phir session + mic sab band (2.6s baad, taake jawab sunai de)
+        if (isShutdownIntent(said)) {
+            Diag.event("kill-switch: shutdown intent — session band");
+            if (liveTalk != null) {
+                liveTalk.sayText("Theek hai boss, main off ho rahi hoon. Allah Hafiz!");
+            }
+            mainHandler.postDelayed(() -> VoiceService.this.stopConversation(), 2600);
+            return;
+        }
 
         // v39: Reminder — "yaad dilana" (phone khud schedule karta hai)
         Reminder.Parsed rp = Reminder.parse(said);
@@ -745,6 +789,8 @@ public class VoiceService extends Service {
         try { MemoryDb.closeSession(this); } catch (Exception ignored) { }
         // v99: camera bhi band — resource latka na rahe
         try { CameraVision.stop(); } catch (Exception ignored) { }
+        // v100: session log band
+        try { SessionLog.end(this); } catch (Exception ignored) { }
     }
 
     /** Mic kholo + khamoshi-pehchan: bolo → 2.5s chup → turn khatam.
@@ -853,6 +899,14 @@ public class VoiceService extends Service {
                 final String said = userText.trim();
                 // v99: "Suna:" subtitle toast KHATAM — screen par koi
                 // transcript pop-up nahi; saving background me jari
+
+                // v100 KILL-SWITCH (fallback path par bhi)
+                if (isShutdownIntent(said)) {
+                    Diag.event("kill-switch (fallback): session band");
+                    speakAndContinue("Theek hai boss, main off ho rahi hoon. Allah Hafiz!", geminiKeys);
+                    mainHandler.postDelayed(() -> VoiceService.this.stopConversation(), 2600);
+                    return;
+                }
 
                 // v39: Reminder — "yaad dilana" (phone khud schedule karta hai)
                 Reminder.Parsed rp = Reminder.parse(said);

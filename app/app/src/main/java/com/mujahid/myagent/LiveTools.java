@@ -343,6 +343,34 @@ public class LiveTools {
                             a.optString("metric_type", "overview"),
                             a.optInt("days", 7));
 
+                // v100: Session continuity — "connection toota tha?"
+                case "get_session_status":
+                    return SessionLog.statusText(ctx);
+
+                // v100: Memory pruning — user ke hukm par delete
+                case "forget_conversation": {
+                    String fq = a.optString("query", "");
+                    int dbN = MemoryDb.deleteMatching(ctx, fq);
+                    int diN = LiveContext.forgetFromDiary(ctx, fq);
+                    if (dbN + diN == 0) {
+                        return "Is topic par koi saved guftagu nahi mili boss "
+                                + "— delete karne ko kuch tha hi nahi.";
+                    }
+                    return "Ho gaya boss — '" + fq + "' wali guftagu memory "
+                            + "se permanently delete kar di (database: "
+                            + dbN + " turns, diary: " + diN + " entries). "
+                            + "Ab ye baat meri memory me nahi hai.";
+                }
+                case "clear_conversation_history": {
+                    int dbN = MemoryDb.clearAllTurns(ctx);
+                    LiveContext.clearDiary(ctx);
+                    try { ChatHistory.clear(ctx); } catch (Exception ignored) { }
+                    return "Ho gaya boss — poori conversation history saaf "
+                            + "kar di (" + dbN + " saved turns delete). "
+                            + "Database ab khali hai; tumhari saved facts "
+                            + "(naam, jagah type maloomat) mehfooz hain.";
+                }
+
                 // v98.2: Deep Memory diagnostic — asal ginti
                 case "get_memory_status":
                     return MemoryDb.statusText(ctx);
