@@ -374,6 +374,47 @@ public class LiveContext {
         } catch (Exception ignored) { }
     }
 
+    // ---------- v100: diary pruning (DB ke sath purani diary bhi) ----------
+
+    /** Query ke alfaaz wali diary entries hatao. Return: entries count. */
+    public static int forgetFromDiary(Context ctx, String query) {
+        try {
+            java.util.List<String> words = new java.util.ArrayList<>();
+            if (query != null) {
+                for (String w : query.toLowerCase(java.util.Locale.ROOT).split("\\s+")) {
+                    String t = w.replaceAll("[^a-z0-9\\u0600-\\u06FF]", "");
+                    if (t.length() >= 3) words.add(t);
+                }
+            }
+            if (words.isEmpty()) return 0;
+            SharedPreferences p = ctx.getSharedPreferences("turn_log", Context.MODE_PRIVATE);
+            JSONArray arr = new JSONArray(p.getString("turns", "[]"));
+            JSONArray keep = new JSONArray();
+            int removed = 0;
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.getJSONObject(i);
+                String both = (o.optString("u", "") + " " + o.optString("a", ""))
+                        .toLowerCase(java.util.Locale.ROOT);
+                boolean hit = false;
+                for (String w : words) if (both.contains(w)) { hit = true; break; }
+                if (hit) removed++;
+                else keep.put(o);
+            }
+            p.edit().putString("turns", keep.toString()).apply();
+            return removed;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /** Poori diary saaf (clear-all par). */
+    public static void clearDiary(Context ctx) {
+        try {
+            ctx.getSharedPreferences("turn_log", Context.MODE_PRIVATE)
+                    .edit().putString("turns", "[]").apply();
+        } catch (Exception ignored) { }
+    }
+
     /**
      * v77: Pichli guftagu ka AMEER khulasa — naye session me asal recall.
      * Pehle sirf aakhri 6 user-lines (120 harf) jati thi — is liye use

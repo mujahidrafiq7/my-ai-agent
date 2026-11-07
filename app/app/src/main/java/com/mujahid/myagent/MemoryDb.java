@@ -402,6 +402,65 @@ public final class MemoryDb extends SQLiteOpenHelper {
         return out;
     }
 
+    // ---------- v100: memory pruning (user ke hukm par delete) ----------
+
+    /**
+     * Query ke alfaaz se milte turns database se hamesha ke liye
+     * delete karo. Pehle AND match, phir OR (delete me narmi behtar).
+     * Return: kitne turns delete hue.
+     */
+    public static int deleteMatching(Context ctx, String query) {
+        try {
+            ready(ctx);
+            List<String> words = new ArrayList<>();
+            if (query != null) {
+                for (String w : query.toLowerCase(Locale.ROOT).split("\\s+")) {
+                    String t = w.replaceAll("[^a-z0-9\\u0600-\\u06FF]", "");
+                    if (t.length() >= 3 && words.size() < 5) words.add(t);
+                }
+            }
+            if (words.isEmpty()) return 0;
+            SQLiteDatabase db = get(ctx).getWritableDatabase();
+            int n = deleteWords(db, words, true);
+            if (n == 0 && words.size() > 1) n = deleteWords(db, words, false);
+            android.util.Log.d("MemoryDb", "Prune by query '" + query + "': " + n + " turns deleted");
+            return n;
+        } catch (Exception e) {
+            android.util.Log.e("MemoryDb", "deleteMatching FAILED", e);
+            return 0;
+        }
+    }
+
+    private static int deleteWords(SQLiteDatabase db, List<String> words,
+                                   boolean andMode) {
+        StringBuilder sel = new StringBuilder("(");
+        List<String> args = new ArrayList<>();
+        for (int i = 0; i < words.size(); i++) {
+            if (i > 0) sel.append(andMode ? " AND " : " OR ");
+            sel.append("text LIKE ?");
+            args.add("%" + words.get(i) + "%");
+        }
+        sel.append(")");
+        return db.delete("turns", sel.toString(), args.toArray(new String[0]));
+    }
+
+    /** Poori conversation history saaf — turns + sessions. Return: turns count. */
+    public static int clearAllTurns(Context ctx) {
+        try {
+            ready(ctx);
+            SQLiteDatabase db = get(ctx).getWritableDatabase();
+            long n = countTurns(db);
+            db.delete("turns", null, null);
+            db.delete("sessions", null, null);
+            closeSession(ctx);
+            android.util.Log.d("MemoryDb", "Prune ALL: " + n + " turns deleted");
+            return (int) n;
+        } catch (Exception e) {
+            android.util.Log.e("MemoryDb", "clearAllTurns FAILED", e);
+            return 0;
+        }
+    }
+
     // ---------- v98.2: startup verification + diagnostic ----------
 
     /** App/service start par: DB kholo, tables check karo, Logcat me report. */
