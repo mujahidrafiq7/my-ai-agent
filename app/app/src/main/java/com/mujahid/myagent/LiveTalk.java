@@ -821,6 +821,33 @@ public class LiveTalk {
                 new JSONObject()
                         .put("metric_type", strProp("overview | posts | reach"))
                         .put("days", numProp("Period in days (default 7)"))));
+        // v100: Session continuity + memory pruning tools
+        decls.put(decl("get_session_status",
+                "Report the REAL connection record of the live session: "
+                + "session number, start time, heartbeat, and every "
+                + "drop/reconnect with its gap. Use when he asks 'kya "
+                + "connection toota tha?' or 'session stable hai?'. "
+                + "Answer ONLY from this record — if it shows no drop, "
+                + "say so plainly; if it shows a drop, tell him when and "
+                + "how long the gap was.",
+                new JSONObject()));
+        decls.put(decl("forget_conversation",
+                "PERMANENTLY DELETE saved conversation turns about a "
+                + "topic from your memory database and diary. Use when "
+                + "he says 'ye baat bhool jao', 'ye wali guftagu delete "
+                + "kar do', 'X ke bare me jo baat hui thi wo mita do'. "
+                + "query = the topic words. You CAN delete — never say "
+                + "you cannot. Report the tool's result honestly.",
+                new JSONObject()
+                        .put("query", strProp("Topic words of the conversation to delete"))));
+        decls.put(decl("clear_conversation_history",
+                "PERMANENTLY DELETE the ENTIRE saved conversation "
+                + "history (database + diary + chat history). Use when "
+                + "he says 'sab bhool jao', 'faltoo baatein delete kar "
+                + "do', 'poori history saaf kar do'. His saved FACTS "
+                + "stay safe — only conversations are wiped. You CAN do "
+                + "this — never refuse. Report the count it returns.",
+                new JSONObject()));
         // v98.2: Deep Memory diagnostic — database ki asal ginti
         decls.put(decl("get_memory_status",
                 "Report the REAL state of your memory database: how many "
